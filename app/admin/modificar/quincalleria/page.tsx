@@ -1,28 +1,110 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
-import { type Quincalleria, getQuincallerias, actualizarQuincalleria, agregarQuincalleria } from "@/lib/database"
+import { useState, useEffect } from "react"
+import type { Quincalleria } from "@/lib/database"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Trash2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ModificarQuincalleriaPage() {
-  const [quincallerias, setQuincallerias] = useState<Quincalleria[]>(getQuincallerias())
+  const [quincallerias, setQuincallerias] = useState<Quincalleria[]>([])
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const handleEdit = (item: Quincalleria, field: keyof Quincalleria, value: any) => {
-    actualizarQuincalleria(item.id, { [field]: value })
-    setQuincallerias(getQuincallerias())
+  useEffect(() => {
+    fetchQuincallerias()
+  }, [])
+
+  const fetchQuincallerias = async () => {
+    try {
+      console.log("[v0] Fetching quincallerias...")
+      const res = await fetch("/api/quincalleria")
+      const { data } = await res.json()
+      console.log("[v0] Quincallerias fetched:", data)
+      setQuincallerias(data)
+      setLoading(false)
+    } catch (error) {
+      console.error("[v0] Error fetching quincallerias:", error)
+      toast({ title: "Error", description: "No se pudieron cargar las quincallerías", variant: "destructive" })
+      setLoading(false)
+    }
   }
 
-  const handleAdd = () => {
-    agregarQuincalleria({
-      nombre: "Nueva Quincallería",
-      descripcion: "Descripción",
-      precio: 10000,
-    })
-    setQuincallerias(getQuincallerias())
+  const handleEdit = async (item: Quincalleria, field: keyof Quincalleria, value: any) => {
+    try {
+      console.log("[v0] Editing quincalleria field:", field, "with value:", value)
+
+      const res = await fetch("/api/quincalleria", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          [field]: value,
+        }),
+      })
+
+      if (!res.ok) throw new Error("Failed to update")
+
+      const { data } = await res.json()
+      setQuincallerias(data)
+      toast({ title: "Éxito", description: "Quincallería actualizada correctamente" })
+    } catch (error) {
+      console.error("[v0] Error updating quincalleria:", error)
+      toast({ title: "Error", description: "No se pudo actualizar la quincallería", variant: "destructive" })
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (confirm("¿Estás seguro de que quieres eliminar esta quincallería?")) {
+      try {
+        console.log("[v0] Deleting quincalleria with id:", id)
+        const res = await fetch("/api/quincalleria", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        })
+
+        if (!res.ok) throw new Error("Failed to delete")
+
+        const { data } = await res.json()
+        setQuincallerias(data)
+        toast({ title: "Éxito", description: "Quincallería eliminada correctamente" })
+      } catch (error) {
+        console.error("[v0] Error deleting quincalleria:", error)
+        toast({ title: "Error", description: "No se pudo eliminar la quincallería", variant: "destructive" })
+      }
+    }
+  }
+
+  const handleAdd = async () => {
+    try {
+      console.log("[v0] Adding new quincalleria...")
+      const res = await fetch("/api/quincalleria", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: "Nueva Quincallería",
+          descripcion: "Descripción",
+          precio: 10000,
+        }),
+      })
+
+      if (!res.ok) throw new Error("Failed to add")
+
+      const { data } = await res.json()
+      setQuincallerias(data)
+      toast({ title: "Éxito", description: "Quincallería agregada correctamente" })
+    } catch (error) {
+      console.error("[v0] Error adding quincalleria:", error)
+      toast({ title: "Error", description: "No se pudo agregar la quincallería", variant: "destructive" })
+    }
+  }
+
+  if (loading) {
+    return <div className="text-center py-8">Cargando...</div>
   }
 
   return (
@@ -56,14 +138,14 @@ export default function ModificarQuincalleriaPage() {
                 <TableCell className="font-medium">{item.id}</TableCell>
                 <TableCell>
                   <Input
-                    value={item.nombre}
+                    value={item.nombre || ""}
                     onChange={(e) => handleEdit(item, "nombre", e.target.value)}
                     className="w-40 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
-                    value={item.descripcion}
+                    value={item.descripcion || ""}
                     onChange={(e) => handleEdit(item, "descripcion", e.target.value)}
                     className="w-80 h-8"
                   />
@@ -71,13 +153,18 @@ export default function ModificarQuincalleriaPage() {
                 <TableCell>
                   <Input
                     type="number"
-                    value={item.precio}
-                    onChange={(e) => handleEdit(item, "precio", Number.parseInt(e.target.value))}
+                    value={item.precio || 0}
+                    onChange={(e) => handleEdit(item, "precio", Number.parseInt(e.target.value) || 0)}
                     className="w-24 h-8"
                   />
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(item.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </TableCell>

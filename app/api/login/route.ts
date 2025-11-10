@@ -1,4 +1,4 @@
-import { validarCredenciales } from "@/lib/database"
+import { createClient } from "@/lib/supabase/server"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
@@ -9,9 +9,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email y contraseña requeridos" }, { status: 400 })
     }
 
-    const usuario = validarCredenciales(correo, contraseña)
+    const supabase = await createClient()
 
-    if (!usuario) {
+    const { data: usuario, error } = await supabase
+      .from("usuarios")
+      .select("id, nombre, correo")
+      .eq("correo", correo)
+      .eq("contraseña", contraseña)
+      .single()
+
+    if (error || !usuario) {
       return NextResponse.json({ error: "Email o contraseña incorrectos" }, { status: 401 })
     }
 

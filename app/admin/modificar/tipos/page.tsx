@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 export default function ModificarTiposPage() {
   const [tipos, setTipos] = useState<Tipo[]>([])
   const [loading, setLoading] = useState(true)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const { toast } = useToast()
 
   useEffect(() => {
@@ -20,11 +21,14 @@ export default function ModificarTiposPage() {
 
   const fetchTipos = async () => {
     try {
+      console.log("[v0] Fetching tipos...")
       const res = await fetch("/api/tipos")
       const { data } = await res.json()
+      console.log("[v0] Tipos fetched:", data)
       setTipos(data)
       setLoading(false)
     } catch (error) {
+      console.error("[v0] Error fetching tipos:", error)
       toast({ title: "Error", description: "No se pudieron cargar los tipos", variant: "destructive" })
       setLoading(false)
     }
@@ -32,15 +36,35 @@ export default function ModificarTiposPage() {
 
   const handleEdit = async (tipo: Tipo, field: keyof Tipo, value: any) => {
     try {
-      const updatedTipo = { ...tipo, [field]: value }
-      await fetch("/api/tipos", {
+      const fieldMap: Record<string, string> = {
+        descripcion: "descripcion",
+        materialId: "materialId",
+        ancho: "ancho",
+        alto: "alto",
+        cantidadCristal: "cantidadCristal",
+        porcentajeQuincalleria: "porcentajeQuincalleria",
+        largoPerfiles: "largoPerfiles",
+        minimo: "minimo",
+        maximo: "maximo",
+        ganancia: "ganancia",
+      }
+
+      const res = await fetch("/api/tipos", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: tipo.id, ...updatedTipo }),
+        body: JSON.stringify({
+          id: tipo.id,
+          [fieldMap[field] || field]: value,
+        }),
       })
-      fetchTipos()
+
+      if (!res.ok) throw new Error("Failed to update")
+
+      const { data } = await res.json()
+      setTipos(data)
       toast({ title: "Éxito", description: "Tipo actualizado correctamente" })
     } catch (error) {
+      console.error("[v0] Error updating tipo:", error)
       toast({ title: "Error", description: "No se pudo actualizar el tipo", variant: "destructive" })
     }
   }
@@ -48,14 +72,19 @@ export default function ModificarTiposPage() {
   const handleDelete = async (id: number) => {
     if (confirm("¿Estás seguro de que quieres eliminar este tipo?")) {
       try {
-        await fetch("/api/tipos", {
+        const res = await fetch("/api/tipos", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id }),
         })
-        fetchTipos()
+
+        if (!res.ok) throw new Error("Failed to delete")
+
+        const { data } = await res.json()
+        setTipos(data)
         toast({ title: "Éxito", description: "Tipo eliminado correctamente" })
       } catch (error) {
+        console.error("[v0] Error deleting tipo:", error)
         toast({ title: "Error", description: "No se pudo eliminar el tipo", variant: "destructive" })
       }
     }
@@ -63,7 +92,7 @@ export default function ModificarTiposPage() {
 
   const handleAdd = async () => {
     try {
-      await fetch("/api/tipos", {
+      const res = await fetch("/api/tipos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -79,9 +108,14 @@ export default function ModificarTiposPage() {
           ganancia: 0,
         }),
       })
-      fetchTipos()
+
+      if (!res.ok) throw new Error("Failed to add")
+
+      const { data } = await res.json()
+      setTipos(data)
       toast({ title: "Éxito", description: "Tipo agregado correctamente" })
     } catch (error) {
+      console.error("[v0] Error adding tipo:", error)
       toast({ title: "Error", description: "No se pudo agregar el tipo", variant: "destructive" })
     }
   }
@@ -130,34 +164,39 @@ export default function ModificarTiposPage() {
                   <Input
                     value={tipo.descripcion}
                     onChange={(e) => handleEdit(tipo, "descripcion", e.target.value)}
+                    onBlur={(e) => {
+                      if (editingId !== tipo.id) {
+                        handleEdit(tipo, "descripcion", e.target.value)
+                      }
+                    }}
                     className="w-64 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     type="number"
-                    value={tipo.materialId}
-                    onChange={(e) => handleEdit(tipo, "materialId", Number.parseInt(e.target.value))}
+                    value={tipo.materialId || 1}
+                    onChange={(e) => handleEdit(tipo, "materialId", Number.parseInt(e.target.value) || 1)}
                     className="w-16 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
-                    value={tipo.ancho}
+                    value={tipo.ancho || ""}
                     onChange={(e) => handleEdit(tipo, "ancho", e.target.value)}
                     className="w-20 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
-                    value={tipo.alto}
+                    value={tipo.alto || ""}
                     onChange={(e) => handleEdit(tipo, "alto", e.target.value)}
                     className="w-20 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
-                    value={tipo.cantidadCristal}
+                    value={tipo.cantidadCristal || ""}
                     onChange={(e) => handleEdit(tipo, "cantidadCristal", e.target.value)}
                     className="w-16 h-8"
                   />
@@ -165,40 +204,40 @@ export default function ModificarTiposPage() {
                 <TableCell>
                   <Input
                     type="number"
-                    value={tipo.porcentajeQuincalleria}
-                    onChange={(e) => handleEdit(tipo, "porcentajeQuincalleria", Number.parseFloat(e.target.value))}
+                    value={tipo.porcentajeQuincalleria || 0}
+                    onChange={(e) => handleEdit(tipo, "porcentajeQuincalleria", Number.parseFloat(e.target.value) || 0)}
                     className="w-16 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     type="number"
-                    value={tipo.largoPerfiles}
-                    onChange={(e) => handleEdit(tipo, "largoPerfiles", Number.parseInt(e.target.value))}
+                    value={tipo.largoPerfiles || 0}
+                    onChange={(e) => handleEdit(tipo, "largoPerfiles", Number.parseInt(e.target.value) || 0)}
                     className="w-16 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     type="number"
-                    value={tipo.minimo}
-                    onChange={(e) => handleEdit(tipo, "minimo", Number.parseInt(e.target.value))}
+                    value={tipo.minimo || 0}
+                    onChange={(e) => handleEdit(tipo, "minimo", Number.parseInt(e.target.value) || 0)}
                     className="w-16 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     type="number"
-                    value={tipo.maximo}
-                    onChange={(e) => handleEdit(tipo, "maximo", Number.parseInt(e.target.value))}
+                    value={tipo.maximo || 0}
+                    onChange={(e) => handleEdit(tipo, "maximo", Number.parseInt(e.target.value) || 0)}
                     className="w-16 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     type="number"
-                    value={tipo.ganancia}
-                    onChange={(e) => handleEdit(tipo, "ganancia", Number.parseInt(e.target.value))}
+                    value={tipo.ganancia || 0}
+                    onChange={(e) => handleEdit(tipo, "ganancia", Number.parseInt(e.target.value) || 0)}
                     className="w-16 h-8"
                   />
                 </TableCell>

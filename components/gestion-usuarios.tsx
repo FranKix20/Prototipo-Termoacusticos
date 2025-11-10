@@ -1,14 +1,22 @@
 "use client"
 
-import { useState } from "react"
-import { getUsuarios, agregarUsuario, actualizarUsuario, eliminarUsuario, type Usuario } from "@/lib/database"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Trash2, Edit2, Check, X } from "lucide-react"
 
+interface Usuario {
+  id: number
+  nombre: string
+  correo: string
+  contraseña: string
+  created_at: string
+}
+
 export function GestionUsuarios() {
-  const [usuarios, setUsuarios] = useState<Usuario[]>(getUsuarios())
+  const [usuarios, setUsuarios] = useState<Usuario[]>([])
+  const [loading, setLoading] = useState(true)
   const [nuevoUsuario, setNuevoUsuario] = useState({
     nombre: "",
     correo: "",
@@ -17,6 +25,25 @@ export function GestionUsuarios() {
   const [editandoId, setEditandoId] = useState<number | null>(null)
   const [datosEdicion, setDatosEdicion] = useState<Partial<Usuario>>({})
   const [error, setError] = useState("")
+  const [mensaje, setMensaje] = useState("")
+
+  useEffect(() => {
+    fetchUsuarios()
+  }, [])
+
+  const fetchUsuarios = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/usuarios")
+      const data = await response.json()
+      setUsuarios(data)
+    } catch (err) {
+      console.error("[v0] Error fetching usuarios:", err)
+      setError("Error al cargar usuarios")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const validarCorreo = (correo: string) => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)
@@ -26,8 +53,9 @@ export function GestionUsuarios() {
     return contraseña.length >= 6
   }
 
-  const handleAgregarUsuario = () => {
+  const handleAgregarUsuario = async () => {
     setError("")
+    setMensaje("")
 
     if (!nuevoUsuario.nombre.trim()) {
       setError("El nombre es requerido")
@@ -44,14 +72,27 @@ export function GestionUsuarios() {
       return
     }
 
-    agregarUsuario({
-      nombre: nuevoUsuario.nombre,
-      correo: nuevoUsuario.correo,
-      contraseña: nuevoUsuario.contraseña,
-    })
+    try {
+      const response = await fetch("/api/usuarios", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nuevoUsuario),
+      })
 
-    setUsuarios(getUsuarios())
-    setNuevoUsuario({ nombre: "", correo: "", contraseña: "" })
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Error al crear usuario")
+        return
+      }
+
+      setMensaje("Usuario creado exitosamente")
+      setNuevoUsuario({ nombre: "", correo: "", contraseña: "" })
+      await fetchUsuarios()
+    } catch (err) {
+      console.error("[v0] Error creating usuario:", err)
+      setError("Error al crear usuario")
+    }
   }
 
   const handleEditarUsuario = (usuario: Usuario) => {
@@ -60,7 +101,7 @@ export function GestionUsuarios() {
     setError("")
   }
 
-  const handleGuardarEdicion = () => {
+  const handleGuardarEdicion = async () => {
     if (!datosEdicion.nombre?.trim()) {
       setError("El nombre es requerido")
       return
@@ -76,22 +117,58 @@ export function GestionUsuarios() {
       return
     }
 
-    actualizarUsuario(editandoId!, {
-      nombre: datosEdicion.nombre,
-      correo: datosEdicion.correo,
-      contraseña: datosEdicion.contraseña,
-    })
+    try {
+      const response = await fetch("/api/usuarios", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editandoId,
+          nombre: datosEdicion.nombre,
+          correo: datosEdicion.correo,
+          contraseña: datosEdicion.contraseña,
+        }),
+      })
 
-    setUsuarios(getUsuarios())
-    setEditandoId(null)
-    setDatosEdicion({})
+      if (!response.ok) {
+        const data = await response.json()
+        setError(data.error || "Error al actualizar usuario")
+        return
+      }
+
+      setMensaje("Usuario actualizado exitosamente")
+      setEditandoId(null)
+      setDatosEdicion({})
+      await fetchUsuarios()
+    } catch (err) {
+      console.error("[v0] Error updating usuario:", err)
+      setError("Error al actualizar usuario")
+    }
   }
 
-  const handleEliminarUsuario = (id: number) => {
+  const handleEliminarUsuario = async (id: number) => {
     if (confirm("¿Está seguro de que desea eliminar este usuario?")) {
-      eliminarUsuario(id)
-      setUsuarios(getUsuarios())
+      try {
+        const response = await fetch(`/api/usuarios?id=${id}`, {
+          method: "DELETE",
+        })
+
+        if (!response.ok) {
+          const data = await response.json()
+          setError(data.error || "Error al eliminar usuario")
+          return
+        }
+
+        setMensaje("Usuario eliminado exitosamente")
+        await fetchUsuarios()
+      } catch (err) {
+        console.error("[v0] Error deleting usuario:", err)
+        setError("Error al eliminar usuario")
+      }
     }
+  }
+
+  if (loading) {
+    return <div className="text-center text-muted-foreground">Cargando usuarios...</div>
   }
 
   return (
@@ -100,6 +177,7 @@ export function GestionUsuarios() {
         <h2 className="text-xl font-bold text-foreground mb-4">Crear Nuevo Usuario</h2>
 
         {error && <div className="mb-4 p-3 bg-red-100 text-red-800 rounded-md text-sm">{error}</div>}
+        {mensaje && <div className="mb-4 p-3 bg-green-100 text-green-800 rounded-md text-sm">{mensaje}</div>}
 
         <div className="space-y-3">
           <div>
@@ -187,7 +265,7 @@ export function GestionUsuarios() {
                         />
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {new Date(usuario.fechaCreacion).toLocaleDateString()}
+                        {new Date(usuario.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-center gap-2">
@@ -219,7 +297,7 @@ export function GestionUsuarios() {
                         {"•".repeat(usuario.contraseña.length)}
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
-                        {new Date(usuario.fechaCreacion).toLocaleDateString()}
+                        {new Date(usuario.created_at).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex justify-center gap-2">

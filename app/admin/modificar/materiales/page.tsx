@@ -1,29 +1,118 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
-import { type Material, getMateriales, actualizarMaterial, agregarMaterial } from "@/lib/database"
+import { useState, useEffect } from "react"
+import type { Material } from "@/lib/database"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Plus, Trash2 } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ModificarMaterialesPage() {
-  const [materiales, setMateriales] = useState<Material[]>(getMateriales())
+  const [materiales, setMateriales] = useState<Material[]>([])
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const handleEdit = (material: Material, field: keyof Material, value: any) => {
-    actualizarMaterial(material.id, { [field]: value })
-    setMateriales(getMateriales())
+  useEffect(() => {
+    fetchMateriales()
+  }, [])
+
+  const fetchMateriales = async () => {
+    try {
+      console.log("[v0] Fetching materiales...")
+      const res = await fetch("/api/materiales")
+      const { data } = await res.json()
+      console.log("[v0] Materiales fetched:", data)
+      setMateriales(data)
+      setLoading(false)
+    } catch (error) {
+      console.error("[v0] Error fetching materiales:", error)
+      toast({ title: "Error", description: "No se pudieron cargar los materiales", variant: "destructive" })
+      setLoading(false)
+    }
   }
 
-  const handleAdd = () => {
-    agregarMaterial({
-      nombre: "Nuevo Material",
-      textoLibrePDF: "Descripción del material",
-      texto1: "Texto 1",
-      texto2: "Texto 2",
-    })
-    setMateriales(getMateriales())
+  const handleEdit = async (material: Material, field: keyof Material, value: any) => {
+    try {
+      console.log("[v0] Editing material field:", field, "with value:", value)
+
+      const fieldMap: Record<string, string> = {
+        nombre: "nombre",
+        textoLibrePDF: "textoLibrePDF",
+        texto1: "texto1",
+        texto2: "texto2",
+      }
+
+      const res = await fetch("/api/materiales", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: material.id,
+          [fieldMap[field] || field]: value,
+        }),
+      })
+
+      if (!res.ok) throw new Error("Failed to update")
+
+      const { data } = await res.json()
+      setMateriales(data)
+      toast({ title: "Éxito", description: "Material actualizado correctamente" })
+    } catch (error) {
+      console.error("[v0] Error updating material:", error)
+      toast({ title: "Error", description: "No se pudo actualizar el material", variant: "destructive" })
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (confirm("¿Estás seguro de que quieres eliminar este material?")) {
+      try {
+        console.log("[v0] Deleting material with id:", id)
+        const res = await fetch("/api/materiales", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        })
+
+        if (!res.ok) throw new Error("Failed to delete")
+
+        const { data } = await res.json()
+        setMateriales(data)
+        toast({ title: "Éxito", description: "Material eliminado correctamente" })
+      } catch (error) {
+        console.error("[v0] Error deleting material:", error)
+        toast({ title: "Error", description: "No se pudo eliminar el material", variant: "destructive" })
+      }
+    }
+  }
+
+  const handleAdd = async () => {
+    try {
+      console.log("[v0] Adding new material...")
+      const res = await fetch("/api/materiales", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: "Nuevo Material",
+          textoLibrePDF: "Descripción del material",
+          texto1: "Texto 1",
+          texto2: "Texto 2",
+        }),
+      })
+
+      if (!res.ok) throw new Error("Failed to add")
+
+      const { data } = await res.json()
+      setMateriales(data)
+      toast({ title: "Éxito", description: "Material agregado correctamente" })
+    } catch (error) {
+      console.error("[v0] Error adding material:", error)
+      toast({ title: "Error", description: "No se pudo agregar el material", variant: "destructive" })
+    }
+  }
+
+  if (loading) {
+    return <div className="text-center py-8">Cargando...</div>
   }
 
   return (
@@ -58,34 +147,39 @@ export default function ModificarMaterialesPage() {
                 <TableCell className="font-medium">{material.id}</TableCell>
                 <TableCell>
                   <Input
-                    value={material.nombre}
+                    value={material.nombre || ""}
                     onChange={(e) => handleEdit(material, "nombre", e.target.value)}
                     className="w-80 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
-                    value={material.textoLibrePDF}
+                    value={material.textoLibrePDF || ""}
                     onChange={(e) => handleEdit(material, "textoLibrePDF", e.target.value)}
                     className="w-96 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
-                    value={material.texto1}
+                    value={material.texto1 || ""}
                     onChange={(e) => handleEdit(material, "texto1", e.target.value)}
                     className="w-48 h-8"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
-                    value={material.texto2}
+                    value={material.texto2 || ""}
                     onChange={(e) => handleEdit(material, "texto2", e.target.value)}
                     className="w-48 h-8"
                   />
                 </TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(material.id)}
+                    className="text-red-600 hover:text-red-700"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </TableCell>
