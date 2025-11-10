@@ -1,40 +1,93 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
-import { type Tipo, getTipos, actualizarTipo, agregarTipo, eliminarTipo } from "@/lib/database"
+import { useState, useEffect } from "react"
+import type { Tipo } from "@/lib/database"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Trash2, Plus } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
 
 export default function ModificarTiposPage() {
-  const [tipos, setTipos] = useState<Tipo[]>(getTipos())
+  const [tipos, setTipos] = useState<Tipo[]>([])
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const handleEdit = (tipo: Tipo, field: keyof Tipo, value: any) => {
-    actualizarTipo(tipo.id, { [field]: value })
-    setTipos(getTipos())
+  useEffect(() => {
+    fetchTipos()
+  }, [])
+
+  const fetchTipos = async () => {
+    try {
+      const res = await fetch("/api/tipos")
+      const { data } = await res.json()
+      setTipos(data)
+      setLoading(false)
+    } catch (error) {
+      toast({ title: "Error", description: "No se pudieron cargar los tipos", variant: "destructive" })
+      setLoading(false)
+    }
   }
 
-  const handleDelete = (id: number) => {
-    eliminarTipo(id)
-    setTipos(getTipos())
+  const handleEdit = async (tipo: Tipo, field: keyof Tipo, value: any) => {
+    try {
+      const updatedTipo = { ...tipo, [field]: value }
+      await fetch("/api/tipos", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: tipo.id, ...updatedTipo }),
+      })
+      fetchTipos()
+      toast({ title: "Éxito", description: "Tipo actualizado correctamente" })
+    } catch (error) {
+      toast({ title: "Error", description: "No se pudo actualizar el tipo", variant: "destructive" })
+    }
   }
 
-  const handleAdd = () => {
-    agregarTipo({
-      descripcion: "Nueva Ventana",
-      materialId: 1,
-      ancho: "X",
-      alto: "Y",
-      cantidadCristal: "Z",
-      porcentajeQuincalleria: 0,
-      largoPerfiles: 0,
-      minimo: 0,
-      maximo: 0,
-      ganancia: 0,
-    })
-    setTipos(getTipos())
+  const handleDelete = async (id: number) => {
+    if (confirm("¿Estás seguro de que quieres eliminar este tipo?")) {
+      try {
+        await fetch("/api/tipos", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id }),
+        })
+        fetchTipos()
+        toast({ title: "Éxito", description: "Tipo eliminado correctamente" })
+      } catch (error) {
+        toast({ title: "Error", description: "No se pudo eliminar el tipo", variant: "destructive" })
+      }
+    }
+  }
+
+  const handleAdd = async () => {
+    try {
+      await fetch("/api/tipos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          descripcion: "Nueva Ventana",
+          materialId: 1,
+          ancho: "X",
+          alto: "Y",
+          cantidadCristal: "Z",
+          porcentajeQuincalleria: 0,
+          largoPerfiles: 0,
+          minimo: 0,
+          maximo: 0,
+          ganancia: 0,
+        }),
+      })
+      fetchTipos()
+      toast({ title: "Éxito", description: "Tipo agregado correctamente" })
+    } catch (error) {
+      toast({ title: "Error", description: "No se pudo agregar el tipo", variant: "destructive" })
+    }
+  }
+
+  if (loading) {
+    return <div className="text-center py-8">Cargando...</div>
   }
 
   return (
