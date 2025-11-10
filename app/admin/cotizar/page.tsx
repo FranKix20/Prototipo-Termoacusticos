@@ -11,7 +11,7 @@ import { Plus, Trash2, FileText } from "lucide-react"
 import type { Tipo, Material, Cristal, Color } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
 import jsPDF from "jspdf"
-import "jspdf-autotable"
+import autoTable from "jspdf-autotable"
 
 interface VentanaItem {
   id: string
@@ -209,6 +209,7 @@ export default function CotizarPage() {
     }
 
     try {
+      console.log("[v0] Iniciando generación de PDF")
       const pdf = new jsPDF()
       let yPosition = 20
 
@@ -232,16 +233,24 @@ export default function CotizarPage() {
       pdf.setFontSize(10)
       pdf.text(`Nombre: ${clientData.nombre}`, 20, yPosition)
       yPosition += 5
-      pdf.text(`RUT: ${clientData.rut}`, 20, yPosition)
-      yPosition += 5
-      pdf.text(`Email: ${clientData.email}`, 20, yPosition)
-      yPosition += 5
-      pdf.text(`Teléfono: ${clientData.telefono}`, 20, yPosition)
-      yPosition += 5
-      pdf.text(`Dirección: ${clientData.direccion}`, 20, yPosition)
-      yPosition += 15
+      if (clientData.rut) {
+        pdf.text(`RUT: ${clientData.rut}`, 20, yPosition)
+        yPosition += 5
+      }
+      if (clientData.email) {
+        pdf.text(`Email: ${clientData.email}`, 20, yPosition)
+        yPosition += 5
+      }
+      if (clientData.telefono) {
+        pdf.text(`Teléfono: ${clientData.telefono}`, 20, yPosition)
+        yPosition += 5
+      }
+      if (clientData.direccion) {
+        pdf.text(`Dirección: ${clientData.direccion}`, 20, yPosition)
+        yPosition += 5
+      }
+      yPosition += 10
 
-      // Process each option
       opciones.forEach((opcion, opcionIdx) => {
         // Check if we need a new page
         if (yPosition > 250) {
@@ -249,10 +258,10 @@ export default function CotizarPage() {
           yPosition = 20
         }
 
-        pdf.setFontSize(12)
+        pdf.setFontSize(14)
         pdf.setTextColor(26, 122, 111)
         pdf.text(opcion.nombre, 20, yPosition)
-        yPosition += 10
+        yPosition += 8
 
         // Calculate totals for this option
         let subtotal = 0
@@ -276,23 +285,45 @@ export default function CotizarPage() {
             color?.nombre || "-",
             String(ventana.cantidad),
             `${ventana.ancho}x${ventana.alto}`,
-            `$${(valor / ventana.cantidad).toLocaleString("es-CL")}`,
+            `$${Math.round(valor / ventana.cantidad).toLocaleString("es-CL")}`,
             `$${valor.toLocaleString("es-CL")}`,
           ]
         })
 
-        pdf.autoTable({
+        console.log("[v0] Generando tabla para", opcion.nombre)
+
+        autoTable(pdf, {
           head: [["N°", "Tipo", "Material", "Cristal", "Color", "Cant.", "Medidas", "V. Unit.", "V. Total"]],
           body: tableData,
           startY: yPosition,
-          margin: 20,
+          margin: { left: 20, right: 20 },
           theme: "grid",
-          headStyles: { fillColor: [26, 122, 111], textColor: [255, 255, 255] },
-          bodyStyles: { textColor: [0, 0, 0] },
+          headStyles: {
+            fillColor: [26, 122, 111],
+            textColor: [255, 255, 255],
+            fontSize: 9,
+            fontStyle: "bold",
+          },
+          bodyStyles: {
+            textColor: [0, 0, 0],
+            fontSize: 8,
+          },
           alternateRowStyles: { fillColor: [240, 240, 240] },
+          columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 25 },
+            2: { cellWidth: 30 },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 20 },
+            5: { cellWidth: 15 },
+            6: { cellWidth: 20 },
+            7: { cellWidth: 22 },
+            8: { cellWidth: 23 },
+          },
         })
 
-        yPosition = (pdf as any).lastAutoTable.finalY + 10
+        // @ts-ignore - autoTable adds finalY property
+        yPosition = pdf.lastAutoTable.finalY + 10
 
         // Subtotal for this option
         const totalConGanancia = Math.round(subtotal * (1 + datosAdicionales.gananciaGlobal / 100))
@@ -302,6 +333,7 @@ export default function CotizarPage() {
         pdf.setTextColor(0, 0, 0)
         pdf.text(`Subtotal ${opcion.nombre}: $${subtotal.toLocaleString("es-CL")}`, 20, yPosition)
         yPosition += 6
+
         if (datosAdicionales.gananciaGlobal > 0) {
           pdf.text(
             `Con ganancia (${datosAdicionales.gananciaGlobal}%): $${totalConGanancia.toLocaleString("es-CL")}`,
@@ -321,7 +353,9 @@ export default function CotizarPage() {
 
         pdf.setFontSize(12)
         pdf.setTextColor(26, 122, 111)
+        pdf.setFont(undefined, "bold")
         pdf.text(`Total ${opcion.nombre}: $${totalFinal.toLocaleString("es-CL")}`, 20, yPosition)
+        pdf.setFont(undefined, "normal")
         yPosition += 15
       })
 
@@ -331,22 +365,30 @@ export default function CotizarPage() {
           pdf.addPage()
           yPosition = 20
         }
-        pdf.setFontSize(10)
+        pdf.setFontSize(11)
         pdf.setTextColor(0, 0, 0)
+        pdf.setFont(undefined, "bold")
         pdf.text("Notas:", 20, yPosition)
-        yPosition += 5
+        pdf.setFont(undefined, "normal")
+        yPosition += 6
+        pdf.setFontSize(9)
         const notesLines = pdf.splitTextToSize(notas, 170)
         pdf.text(notesLines, 20, yPosition)
       }
 
-      const pdfBlob = pdf.output("blob")
-      const pdfUrl = URL.createObjectURL(pdfBlob)
-      window.open(pdfUrl, "_blank")
+      console.log("[v0] PDF generado exitosamente")
 
-      toast({ title: "Éxito", description: "Cotización generada en nueva ventana" })
+      const fileName = `Cotizacion_${clientData.nombre.replace(/\s+/g, "_")}_${new Date().toLocaleDateString("es-CL").replace(/\//g, "-")}.pdf`
+      pdf.save(fileName)
+
+      toast({ title: "Éxito", description: "Cotización generada y descargada exitosamente" })
     } catch (error) {
-      console.error(error)
-      toast({ title: "Error", description: "Error al generar el PDF", variant: "destructive" })
+      console.error("[v0] Error generando PDF:", error)
+      toast({
+        title: "Error",
+        description: "Error al generar el PDF. Revisa la consola para más detalles.",
+        variant: "destructive",
+      })
     }
   }
 
