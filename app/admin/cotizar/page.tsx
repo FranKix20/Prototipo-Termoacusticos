@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { Plus, Trash2, Download } from "lucide-react"
+import { Plus, Trash2, FileText } from "lucide-react"
 import type { Tipo, Material, Cristal, Color } from "@/lib/database"
 import { useToast } from "@/hooks/use-toast"
 import jsPDF from "jspdf"
@@ -115,6 +115,7 @@ export default function CotizarPage() {
     setOpciones(
       opciones.map((op) => {
         if (op.id === opcionId) {
+          const ultimaVentana = op.ventanas[op.ventanas.length - 1]
           const newId = (Math.max(...op.ventanas.map((v) => Number.parseInt(v.id)), 0) + 1).toString()
           return {
             ...op,
@@ -122,13 +123,13 @@ export default function CotizarPage() {
               ...op.ventanas,
               {
                 id: newId,
-                tipoId: 0,
-                materialId: 0,
-                cristalId: 0,
-                colorId: 0,
-                cantidad: 1,
-                ancho: 0,
-                alto: 0,
+                tipoId: ultimaVentana.tipoId,
+                materialId: ultimaVentana.materialId,
+                cristalId: ultimaVentana.cristalId,
+                colorId: ultimaVentana.colorId,
+                cantidad: ultimaVentana.cantidad,
+                ancho: ultimaVentana.ancho,
+                alto: ultimaVentana.alto,
               },
             ],
           }
@@ -167,28 +168,31 @@ export default function CotizarPage() {
   }
 
   const agregarOpcion = () => {
+    const primeraOpcion = opciones[0]
     const newId = (Math.max(...opciones.map((o) => Number.parseInt(o.id)), 0) + 1).toString()
+
+    // Copiar ventanas de la primera opción con IDs nuevos
+    const ventanasCopiadas = primeraOpcion.ventanas.map((ventana, idx) => ({
+      id: (idx + 1).toString(),
+      tipoId: ventana.tipoId,
+      materialId: 0, // Dejar material vacío para que lo cambie el usuario
+      cristalId: ventana.cristalId,
+      colorId: ventana.colorId,
+      cantidad: ventana.cantidad,
+      ancho: ventana.ancho,
+      alto: ventana.alto,
+    }))
+
     setOpciones([
       ...opciones,
       {
         id: newId,
         nombre: `Opción ${Number.parseInt(newId)}`,
-        ventanas: [
-          {
-            id: "1",
-            tipoId: 0,
-            materialId: 0,
-            cristalId: 0,
-            colorId: 0,
-            cantidad: 1,
-            ancho: 0,
-            alto: 0,
-          },
-        ],
+        ventanas: ventanasCopiadas,
         total: 0,
       },
     ])
-    toast({ title: "Éxito", description: "Nueva opción agregada" })
+    toast({ title: "Éxito", description: "Nueva opción agregada con estructura replicada" })
   }
 
   const eliminarOpcion = (id: string) => {
@@ -335,12 +339,22 @@ export default function CotizarPage() {
         pdf.text(notesLines, 20, yPosition)
       }
 
-      // Save PDF
-      pdf.save(`cotizacion-${clientData.nombre.replace(/\s+/g, "_")}.pdf`)
-      toast({ title: "Éxito", description: "PDF generado correctamente" })
+      const pdfBlob = pdf.output("blob")
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+      window.open(pdfUrl, "_blank")
+
+      toast({ title: "Éxito", description: "Cotización generada en nueva ventana" })
     } catch (error) {
+      console.error(error)
       toast({ title: "Error", description: "Error al generar el PDF", variant: "destructive" })
     }
+  }
+
+  const truncarMaterial = (nombre: string, maxLength = 25) => {
+    if (nombre.length > maxLength) {
+      return nombre.substring(0, maxLength) + "..."
+    }
+    return nombre
   }
 
   return (
@@ -464,7 +478,7 @@ export default function CotizarPage() {
                   <thead>
                     <tr className="bg-gray-100 border-b">
                       <th className="text-left py-3 px-2">N°</th>
-                      <th className="text-left py-3 px-2">Material</th>
+                      <th className="text-left py-3 px-2 w-32">Material</th>
                       <th className="text-left py-3 px-2">Tipo</th>
                       <th className="text-left py-3 px-2">Cristal</th>
                       <th className="text-left py-3 px-2">Color</th>
@@ -481,23 +495,30 @@ export default function CotizarPage() {
                       <tr key={ventana.id} className="border-b hover:bg-gray-50">
                         <td className="py-2 px-2">{idx + 1}</td>
                         <td className="py-2 px-2">
-                          <Select
-                            value={String(ventana.materialId)}
-                            onValueChange={(v) =>
-                              actualizarVentana(opcion.id, ventana.id, "materialId", Number.parseInt(v))
-                            }
-                          >
-                            <SelectTrigger className="w-full h-8">
-                              <SelectValue placeholder="Sel." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {materiales.map((m) => (
-                                <SelectItem key={m.id} value={String(m.id)}>
-                                  {m.nombre}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <div className="relative group">
+                            <Select
+                              value={String(ventana.materialId)}
+                              onValueChange={(v) =>
+                                actualizarVentana(opcion.id, ventana.id, "materialId", Number.parseInt(v))
+                              }
+                            >
+                              <SelectTrigger className="w-full h-8">
+                                <SelectValue placeholder="Sel." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {materiales.map((m) => (
+                                  <SelectItem key={m.id} value={String(m.id)}>
+                                    {m.nombre}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {ventana.materialId > 0 && (
+                              <div className="absolute left-0 top-full mt-1 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap z-50 hidden group-hover:block">
+                                {materiales.find((m) => m.id === ventana.materialId)?.nombre}
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="py-2 px-2">
                           <Select
@@ -637,8 +658,8 @@ export default function CotizarPage() {
           Agregar otra opción
         </Button>
         <Button onClick={generarPDF} className="gap-2 flex-1 bg-orange-500 hover:bg-orange-600">
-          <Download className="h-4 w-4" />
-          Descargar PDF
+          <FileText className="h-4 w-4" />
+          Generar Cotización
         </Button>
       </div>
     </div>
