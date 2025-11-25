@@ -60,18 +60,43 @@ export default function ModificarImagenesPage() {
     const file = e.target.files?.[0]
     if (!file) return
 
+    console.log("[v0] File selected:", file.name, "size:", file.size, "type:", file.type)
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: "Error",
+        description: "El archivo es muy grande. Máximo 10MB",
+        variant: "destructive",
+      })
+      return
+    }
+
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Error",
+        description: "Solo se permiten archivos de imagen",
+        variant: "destructive",
+      })
+      return
+    }
+
     setUploading(true)
     const formData = new FormData()
     formData.append("file", file)
 
     try {
+      console.log("[v0] Sending upload request...")
       const response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       })
 
+      console.log("[v0] Response status:", response.status)
+      const responseData = await response.json()
+      console.log("[v0] Response data:", responseData)
+
       if (response.ok) {
-        const { url } = await response.json()
+        const { url } = responseData
         console.log("[v0] Uploaded image URL:", url)
         setNewImage((prev) => ({
           ...prev,
@@ -80,11 +105,15 @@ export default function ModificarImagenesPage() {
         }))
         toast({ title: "Imagen subida exitosamente" })
       } else {
-        throw new Error("Upload failed")
+        throw new Error(responseData.error || "Upload failed")
       }
     } catch (error) {
       console.error("[v0] Upload error:", error)
-      toast({ title: "Error al subir imagen", variant: "destructive" })
+      toast({
+        title: "Error al subir imagen",
+        description: error instanceof Error ? error.message : "Error desconocido",
+        variant: "destructive",
+      })
     } finally {
       setUploading(false)
     }
