@@ -38,6 +38,7 @@ export default function CotizarPage() {
     email: "",
     telefono: "",
     direccion: "",
+    empresa: "", // Added empresa field
   })
 
   const [datosAdicionales, setDatosAdicionales] = useState({
@@ -73,6 +74,10 @@ export default function CotizarPage() {
   const [colores, setColores] = useState<Color[]>([])
   const { toast } = useToast()
 
+  const [showMaterialModal, setShowMaterialModal] = useState(false)
+  const [currentOpcionForModal, setCurrentOpcionForModal] = useState<Opcion | null>(null)
+  const [selectedMaterialForOption, setSelectedMaterialForOption] = useState(0)
+
   useEffect(() => {
     fetchAllData()
   }, [])
@@ -100,6 +105,12 @@ export default function CotizarPage() {
     }
   }
 
+  const calcularQuincalleria = (ventana: VentanaItem) => {
+    // Base hardware cost of 15000 per window
+    const costoBase = 15000
+    return costoBase * ventana.cantidad
+  }
+
   const calcularValorTotal = (ventana: VentanaItem) => {
     const tipo = tipos.find((t) => t.id === ventana.tipoId)
     const cristal = cristales.find((c) => c.id === ventana.cristalId)
@@ -113,8 +124,9 @@ export default function CotizarPage() {
     const precioBase = tipo.precio_por_m2 * metrosCuadrados
     const precioCristal = cristal.precio * metrosCuadrados
     const precioColor = color.precio * metrosCuadrados
+    const costoQuincalleria = calcularQuincalleria(ventana)
 
-    return (precioBase + precioCristal + precioColor) * ventana.cantidad
+    return (precioBase + precioCristal + precioColor) * ventana.cantidad + costoQuincalleria
   }
 
   const actualizarVentana = (opcionId: string, ventanaId: string, campo: string, valor: any) => {
@@ -132,26 +144,45 @@ export default function CotizarPage() {
 
   const agregarVentana = (opcionId: string) => {
     setOpciones(
-      opciones.map((opcion) =>
-        opcion.id === opcionId
-          ? {
-              ...opcion,
-              ventanas: [
-                ...opcion.ventanas,
-                {
-                  id: Date.now().toString(),
-                  tipoId: 0,
-                  materialId: 0,
-                  cristalId: 0,
-                  colorId: 0,
-                  cantidad: 1,
-                  ancho: "", // Empty string instead of 0
-                  alto: "", // Empty string instead of 0
-                },
-              ],
-            }
-          : opcion,
-      ),
+      opciones.map((opcion) => {
+        if (opcion.id === opcionId && opcion.ventanas.length > 0) {
+          const lastVentana = opcion.ventanas[opcion.ventanas.length - 1]
+          return {
+            ...opcion,
+            ventanas: [
+              ...opcion.ventanas,
+              {
+                id: Date.now().toString(),
+                tipoId: 0,
+                materialId: lastVentana.materialId,
+                cristalId: lastVentana.cristalId,
+                colorId: lastVentana.colorId,
+                cantidad: lastVentana.cantidad,
+                ancho: lastVentana.ancho,
+                alto: lastVentana.alto,
+              },
+            ],
+          }
+        } else if (opcion.id === opcionId) {
+          return {
+            ...opcion,
+            ventanas: [
+              ...opcion.ventanas,
+              {
+                id: Date.now().toString(),
+                tipoId: 0,
+                materialId: 0,
+                cristalId: 0,
+                colorId: 0,
+                cantidad: 1,
+                ancho: "",
+                alto: "",
+              },
+            ],
+          }
+        }
+        return opcion
+      }),
     )
   }
 
@@ -192,6 +223,39 @@ export default function CotizarPage() {
     ])
   }
 
+  const handleAgregarOpcionConMaterial = () => {
+    if (opciones.length > 0 && opciones[opciones.length - 1].ventanas.length > 0) {
+      setCurrentOpcionForModal(opciones[opciones.length - 1])
+      setSelectedMaterialForOption(0)
+      setShowMaterialModal(true)
+    } else {
+      agregarOpcion()
+    }
+  }
+
+  const confirmarAgregarOpcionConMaterial = () => {
+    if (currentOpcionForModal && selectedMaterialForOption) {
+      const newId = (opciones.length + 1).toString()
+      const nuevasVentanas = currentOpcionForModal.ventanas.map((v) => ({
+        ...v,
+        id: Date.now().toString() + Math.random(),
+        materialId: selectedMaterialForOption,
+      }))
+
+      setOpciones([
+        ...opciones,
+        {
+          id: newId,
+          nombre: `Opción ${newId}`,
+          ventanas: nuevasVentanas,
+          total: 0,
+        },
+      ])
+      setShowMaterialModal(false)
+      setCurrentOpcionForModal(null)
+    }
+  }
+
   const eliminarOpcion = (opcionId: string) => {
     setOpciones(opciones.filter((o) => o.id !== opcionId))
   }
@@ -199,110 +263,269 @@ export default function CotizarPage() {
   const generarPDF = async () => {
     const doc = new jsPDF()
 
-    doc.setFontSize(18)
-    doc.text("Cotización", 14, 22)
+    const fetchImages = async () => {
+      try {
+        console.log("[v0] Fetching images for PDF...")
+        const response = await fetch("/api/imagenes")
+        const data = await response.json()
+        console.log("[v0] Images fetched:", data)
+        return {
+          logo: data.imagenes?.find((img: any) => img.tipo === "Logo")?.url || null,
+          encabezado: data.imagenes?.find((img: any) => img.tipo === "Encabezado")?.url || null,
+          piePagina: data.imagenes?.find((img: any) => img.tipo === "Pie de pagina")?.url || null,
+          productos: data.imagenes?.filter((img: any) => img.tipo === "Producto") || [],
+        }
+      } catch (error) {
+        console.error("[v0] Error fetching images:", error)
+        return { logo: null, encabezado: null, piePagina: null, productos: [] }
+      }
+    }
 
-    doc.setFontSize(11)
-    doc.text(`Cliente: ${clientData.nombre}`, 14, 35)
-    doc.text(`RUT: ${clientData.rut}`, 14, 42)
-    doc.text(`Email: ${clientData.email}`, 14, 49)
-    doc.text(`Teléfono: ${clientData.telefono}`, 14, 56)
+    const images = await fetchImages()
+    console.log("[v0] Images loaded for PDF:", images)
 
-    let yPosition = 70
+    const colors = {
+      primary: "#1e3a8a",
+      secondary: "#475569",
+      accent: "#0ea5e9",
+      text: "#1e293b",
+      lightGray: "#f1f5f9",
+      border: "#cbd5e1",
+    }
 
-    opciones.forEach((opcion) => {
+    let yPosition = 20
+
+    doc.setFontSize(20)
+    doc.setTextColor(colors.primary)
+    doc.setFont("helvetica", "bold")
+    doc.text("COTIZACIÓN", 105, 40, { align: "center" })
+
+    if (images.logo) {
+      try {
+        console.log("[v0] Adding logo to PDF")
+        doc.addImage(images.logo, "PNG", 14, 15, 35, 20)
+      } catch (error) {
+        console.log("[v0] Error loading logo:", error)
+      }
+    }
+
+    if (images.encabezado) {
+      try {
+        console.log("[v0] Adding header image to PDF")
+        doc.addImage(images.encabezado, "PNG", 14, 50, 182, 25)
+        yPosition = 80
+      } catch (error) {
+        console.log("[v0] Error loading header:", error)
+        yPosition = 55
+      }
+    } else {
+      yPosition = 55
+    }
+
+    doc.setFontSize(9)
+    doc.setTextColor(colors.secondary)
+    doc.text(clientData.empresa || "TermoAcústicos", 196, 20, { align: "right" })
+    doc.text(
+      `Fecha: ${new Date().toLocaleDateString("es-CL", { year: "numeric", month: "long", day: "numeric" })}`,
+      196,
+      25,
+      { align: "right" },
+    )
+
+    opciones.forEach((opcion, opcionIndex) => {
+      if (yPosition > 240) {
+        doc.addPage()
+        yPosition = 20
+      }
+
       doc.setFontSize(14)
+      doc.setTextColor(colors.primary)
+      doc.setFont("helvetica", "bold")
       doc.text(opcion.nombre, 14, yPosition)
-      yPosition += 10
+      yPosition += 8
 
-      const tableData = opcion.ventanas.map((v) => {
-        const tipo = tipos.find((t) => t.id === v.tipoId)
-        const material = materiales.find((m) => m.id === v.materialId)
-        const cristal = cristales.find((c) => c.id === v.cristalId)
-        const color = colores.find((co) => co.id === v.colorId)
-        return [
-          material?.nombre || "-",
-          tipo?.descripcion || "-",
-          cristal?.descripcion || "-",
-          color?.nombre || "-",
-          v.cantidad,
-          v.ancho,
-          v.alto,
-          `$${calcularValorTotal(v).toLocaleString("es-CL")}`,
-        ]
-      })
+      const tableData = opcion.ventanas
+        .filter((v) => v.tipoId && v.materialId)
+        .map((v, index) => {
+          const tipo = tipos.find((t) => t.id === v.tipoId)
+          const material = materiales.find((m) => m.id === v.materialId)
+          const cristal = cristales.find((c) => c.id === v.cristalId)
+          const color = colores.find((co) => co.id === v.colorId)
+          const costoVentana = (() => {
+            if (!tipo || !cristal || !color) return 0
+            const anchoNum = Number.parseFloat(v.ancho) || 0
+            const altoNum = Number.parseFloat(v.alto) || 0
+            const metrosCuadrados = (anchoNum / 1000) * (altoNum / 1000)
+            const precioBase = tipo.precio_por_m2 * metrosCuadrados
+            const precioCristal = cristal.precio * metrosCuadrados
+            const precioColor = color.precio * metrosCuadrados
+            return (precioBase + precioCristal + precioColor) * v.cantidad
+          })()
+          const costoQuincalleria = calcularQuincalleria(v)
+          const total = costoVentana + costoQuincalleria
+
+          return [
+            (index + 1).toString(),
+            tipo?.descripcion || "-",
+            material?.nombre || "-",
+            cristal?.descripcion || "-",
+            color?.nombre || "-",
+            v.cantidad.toString(),
+            `${v.ancho} x ${v.alto} mm`,
+            `$${costoQuincalleria.toLocaleString("es-CL")}`,
+            `$${total.toLocaleString("es-CL")}`,
+          ]
+        })
 
       autoTable(doc, {
         startY: yPosition,
-        head: [["Material", "Tipo", "Cristal", "Color", "Cant.", "Ancho", "Alto", "Total"]],
+        head: [["N°", "Tipo", "Material", "Cristal", "Color", "Cant.", "Dimensiones", "Quinc.", "Total"]],
         body: tableData,
+        theme: "striped",
+        headStyles: {
+          fillColor: colors.primary,
+          textColor: "#ffffff",
+          fontSize: 9,
+          fontStyle: "bold",
+          halign: "center",
+        },
+        bodyStyles: {
+          fontSize: 8,
+          textColor: colors.text,
+        },
+        alternateRowStyles: {
+          fillColor: colors.lightGray,
+        },
+        columnStyles: {
+          0: { halign: "center", cellWidth: 10 },
+          1: { cellWidth: 38 },
+          2: { cellWidth: 30 },
+          3: { cellWidth: 22 },
+          4: { cellWidth: 22 },
+          5: { halign: "center", cellWidth: 12 },
+          6: { halign: "center", cellWidth: 28 },
+          7: { halign: "right", cellWidth: 18 },
+          8: { halign: "right", cellWidth: 22 },
+        },
+        margin: { left: 14, right: 14 },
       })
 
       yPosition = (doc as any).lastAutoTable.finalY + 10
+
+      const totalOpcion = opcion.ventanas
+        .filter((v) => v.tipoId && v.materialId)
+        .reduce((sum, v) => sum + calcularValorTotal(v), 0)
+
+      doc.setFontSize(11)
+      doc.setTextColor(colors.primary)
+      doc.setFont("helvetica", "bold")
+      doc.text(`Subtotal ${opcion.nombre}: $${totalOpcion.toLocaleString("es-CL")}`, 196, yPosition, {
+        align: "right",
+      })
+
+      yPosition += 15
     })
+
+    if (yPosition > 250) {
+      doc.addPage()
+      yPosition = 20
+    }
+
+    const totalGeneral = opciones.reduce((sum, op) => {
+      return (
+        sum + op.ventanas.filter((v) => v.tipoId && v.materialId).reduce((vSum, v) => vSum + calcularValorTotal(v), 0)
+      )
+    }, 0)
+
+    const pageCount = doc.getNumberOfPages()
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i)
+
+      if (images.piePagina) {
+        try {
+          doc.addImage(images.piePagina, "PNG", 14, 275, 182, 15)
+        } catch (error) {
+          console.log("[v0] Error loading footer:", error)
+        }
+      }
+
+      doc.setFontSize(8)
+      doc.setTextColor(colors.secondary)
+      doc.text(`Página ${i} de ${pageCount}`, 105, 290, { align: "center" })
+    }
 
     try {
       const pdfBlob = doc.output("blob")
       const fileName = `cotizacion-${clientData.nombre.replace(/\s+/g, "-")}-${Date.now()}.pdf`
 
+      console.log("[v0] Uploading PDF to Blob:", fileName)
       const formData = new FormData()
       formData.append("file", pdfBlob, fileName)
 
-      const uploadResponse = await fetch("/api/save-pdf", {
+      const uploadResponse = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       })
 
-      const uploadResult = await uploadResponse.json()
-
-      if (uploadResult.success) {
-        const precioTotal = opciones.reduce((total, opcion) => {
-          return (
-            total +
-            opcion.ventanas.reduce((sum, v) => {
-              return sum + calcularValorTotal(v)
-            }, 0)
-          )
-        }, 0)
-
-        const saveResponse = await fetch("/api/cotizaciones", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            clienteNombre: clientData.nombre,
-            clienteRut: clientData.rut,
-            clienteCorreo: clientData.email,
-            clienteTelefono: clientData.telefono,
-            clienteDireccion: "",
-            precioTotal: precioTotal,
-            pdfUrl: uploadResult.url,
-            items: opciones.flatMap((opcion) =>
-              opcion.ventanas.map((v) => ({
-                tipoId: v.tipoId,
-                materialId: v.materialId,
-                cristalId: v.cristalId,
-                colorId: v.colorId,
-                cantidad: v.cantidad,
-                ancho: v.ancho,
-                alto: v.alto,
-              })),
-            ),
-          }),
-        })
-
-        const saveResult = await saveResponse.json()
-
-        if (saveResult.success) {
-          alert("Cotización guardada en el historial correctamente")
-        }
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload PDF")
       }
-    } catch (error) {
-      console.error("Error saving to history:", error)
-    }
 
-    doc.save("cotizacion.pdf")
+      const uploadData = await uploadResponse.json()
+      console.log("[v0] PDF uploaded successfully:", uploadData.url)
+
+      const cotizacionData = {
+        clienteNombre: clientData.nombre,
+        clienteRut: clientData.rut,
+        clienteCorreo: clientData.email,
+        clienteTelefono: clientData.telefono,
+        clienteDireccion: clientData.direccion || "",
+        precioTotal: totalGeneral,
+        pdfUrl: uploadData.url,
+        items: opciones.flatMap((op) =>
+          op.ventanas
+            .filter((v) => v.tipoId && v.materialId)
+            .map((v) => ({
+              tipoId: v.tipoId,
+              materialId: v.materialId,
+              cristalId: v.cristalId,
+              colorId: v.colorId,
+              cantidad: v.cantidad,
+              ancho: Number.parseFloat(v.ancho) || 0,
+              alto: Number.parseFloat(v.alto) || 0,
+              valorTotal: calcularValorTotal(v),
+            })),
+        ),
+      }
+
+      console.log("[v0] Saving cotizacion to database:", cotizacionData)
+
+      const saveResponse = await fetch("/api/cotizaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cotizacionData),
+      })
+
+      if (!saveResponse.ok) {
+        throw new Error("Failed to save cotizacion")
+      }
+
+      const saveData = await saveResponse.json()
+      console.log("[v0] Cotizacion saved with ID:", saveData.id)
+
+      // Download PDF for user
+      const url = URL.createObjectURL(pdfBlob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = fileName
+      link.click()
+      URL.revokeObjectURL(url)
+
+      toast({ title: "Éxito", description: "PDF generado y guardado correctamente" })
+    } catch (error) {
+      console.error("[v0] Error generating/saving PDF:", error)
+      toast({ title: "Error", description: "Error al generar o guardar el PDF", variant: "destructive" })
+    }
   }
 
   const handleEnviarCotizacion = async () => {
@@ -392,6 +615,11 @@ export default function CotizarPage() {
               placeholder="Dirección"
               value={clientData.direccion}
               onChange={(e) => setClientData({ ...clientData, direccion: e.target.value })}
+            />
+            <Input
+              placeholder="Empresa"
+              value={clientData.empresa}
+              onChange={(e) => setClientData({ ...clientData, empresa: e.target.value })}
             />
           </CardContent>
         </Card>
@@ -594,11 +822,9 @@ export default function CotizarPage() {
                             type="number"
                             step="0.1"
                             min="0"
-                            placeholder="0" // Added placeholder
+                            placeholder="0"
                             value={ventana.ancho}
-                            onChange={
-                              (e) => actualizarVentana(opcion.id, ventana.id, "ancho", e.target.value) // Store as string
-                            }
+                            onChange={(e) => actualizarVentana(opcion.id, ventana.id, "ancho", e.target.value)}
                             className="w-full h-8 text-center"
                           />
                         </td>
@@ -607,11 +833,9 @@ export default function CotizarPage() {
                             type="number"
                             step="0.1"
                             min="0"
-                            placeholder="0" // Added placeholder
+                            placeholder="0"
                             value={ventana.alto}
-                            onChange={
-                              (e) => actualizarVentana(opcion.id, ventana.id, "alto", e.target.value) // Store as string
-                            }
+                            onChange={(e) => actualizarVentana(opcion.id, ventana.id, "alto", e.target.value)}
                             className="w-full h-8 text-center"
                           />
                         </td>
@@ -658,7 +882,7 @@ export default function CotizarPage() {
       </Card>
 
       <div className="flex gap-3">
-        <Button onClick={agregarOpcion} variant="outline" className="gap-2 bg-transparent">
+        <Button onClick={handleAgregarOpcionConMaterial} variant="outline" className="gap-2 bg-transparent">
           <Plus className="h-4 w-4" />
           Agregar otra opción
         </Button>
@@ -670,6 +894,51 @@ export default function CotizarPage() {
           Enviar por Email
         </Button>
       </div>
+
+      {showMaterialModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Seleccionar Material para Nueva Opción</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Material</label>
+                <Select
+                  value={selectedMaterialForOption.toString()}
+                  onValueChange={(value) => setSelectedMaterialForOption(Number.parseInt(value))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar material" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {materiales.map((material) => (
+                      <SelectItem key={material.id} value={material.id.toString()}>
+                        {material.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Los demás datos (tipo, cristal, color, dimensiones) se copiarán de la opción anterior
+                </p>
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setShowMaterialModal(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={confirmarAgregarOpcionConMaterial}
+                  disabled={!selectedMaterialForOption}
+                  className="bg-teal-600 hover:bg-teal-700"
+                >
+                  Agregar Opción
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
