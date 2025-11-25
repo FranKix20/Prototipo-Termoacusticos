@@ -1,51 +1,102 @@
 "use client"
 
-import { useState } from "react"
-import { getCotizaciones, actualizarCotizacion, type Cotizacion } from "@/lib/database"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { Eye, Download, Trash2 } from "lucide-react"
+import { Download, Trash2 } from "lucide-react"
+
+interface Cotizacion {
+  id: number
+  cliente_nombre: string
+  cliente_rut: string | null
+  cliente_correo: string
+  cliente_telefono: string | null
+  cliente_direccion: string | null
+  precio_total: number
+  estado: string
+  notas: string | null
+  created_at: string
+  updated_at: string
+}
 
 export function HistorialCotizaciones() {
-  const [cotizaciones, setCotizaciones] = useState<Cotizacion[]>(getCotizaciones())
+  const [cotizaciones, setCotizaciones] = useState<Cotizacion[]>([])
   const [filtroEstado, setFiltroEstado] = useState<"todas" | "pendiente" | "confirmada" | "completada">("todas")
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    loadCotizaciones()
+  }, [])
+
+  const loadCotizaciones = async () => {
+    try {
+      setLoading(true)
+      const response = await fetch("/api/cotizaciones")
+      const data = await response.json()
+
+      if (data.success) {
+        setCotizaciones(data.cotizaciones)
+      }
+    } catch (error) {
+      console.error("Error loading cotizaciones:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const cotizacionesFiltradas =
     filtroEstado === "todas" ? cotizaciones : cotizaciones.filter((c) => c.estado === filtroEstado)
 
-  const handleCambiarEstado = (id: number, nuevoEstado: Cotizacion["estado"]) => {
-    actualizarCotizacion(id, { estado: nuevoEstado })
-    setCotizaciones(getCotizaciones())
+  const handleCambiarEstado = async (id: number, nuevoEstado: string) => {
+    try {
+      const response = await fetch(`/api/cotizaciones/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ estado: nuevoEstado }),
+      })
+
+      if (response.ok) {
+        await loadCotizaciones()
+      }
+    } catch (error) {
+      console.error("Error updating estado:", error)
+    }
   }
 
   const handleDescargarPDF = (cotizacion: Cotizacion) => {
-    // Generar PDF con los datos de la cotización
-    const contenido = `
-COTIZACIÓN #${cotizacion.id}
-Fecha: ${new Date(cotizacion.fechaCreacion).toLocaleDateString()}
+    try {
+      const notasData = cotizacion.notas ? JSON.parse(cotizacion.notas) : {}
+      const pdfUrl = notasData.pdfUrl
 
-DATOS DEL CLIENTE
-Nombre: ${cotizacion.clienteNombre}
-Correo: ${cotizacion.clienteCorreo}
-Teléfono: ${cotizacion.clienteTelefono}
-Dirección: ${cotizacion.clienteDireccion}
+      if (pdfUrl) {
+        window.open(pdfUrl, "_blank")
+      } else {
+        alert("PDF no disponible para esta cotización")
+      }
+    } catch (error) {
+      console.error("Error downloading PDF:", error)
+      alert("Error al descargar el PDF")
+    }
+  }
 
-RESUMEN DE COTIZACIÓN
-Total: $${cotizacion.precioTotal.toLocaleString()}
-Costo de Despacho: $${cotizacion.costoDespacho.toLocaleString()}
-Costo de Instalación: $${cotizacion.costoInstalacion.toLocaleString()}
-Ganancia Global: ${cotizacion.gananciaGlobal}%
+  const handleEliminar = async (id: number) => {
+    if (!confirm("¿Estás seguro de eliminar esta cotización?")) {
+      return
+    }
 
-Notas: ${cotizacion.notas || "Sin notas"}
-    `
+    try {
+      const response = await fetch(`/api/cotizaciones/${id}`, {
+        method: "DELETE",
+      })
 
-    const element = document.createElement("a")
-    element.setAttribute("href", "data:text/plain;charset=utf-8," + encodeURIComponent(contenido))
-    element.setAttribute("download", `cotizacion-${cotizacion.id}.txt`)
-    element.style.display = "none"
-    document.body.appendChild(element)
-    element.click()
-    document.body.removeChild(element)
+      if (response.ok) {
+        await loadCotizaciones()
+      }
+    } catch (error) {
+      console.error("Error deleting cotizacion:", error)
+    }
   }
 
   const getColorEstado = (estado: string) => {
@@ -59,6 +110,18 @@ Notas: ${cotizacion.notas || "Sin notas"}
       default:
         return "bg-gray-100 text-gray-800"
     }
+  }
+
+  const getRut = (cotizacion: Cotizacion) => {
+    return cotizacion.cliente_rut || "N/A"
+  }
+
+  if (loading) {
+    return (
+      <Card className="p-6 bg-card">
+        <p className="text-center text-muted-foreground">Cargando historial...</p>
+      </Card>
+    )
   }
 
   return (
@@ -112,6 +175,7 @@ Notas: ${cotizacion.notas || "Sin notas"}
                 <tr className="bg-muted border-b border-border">
                   <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">ID</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Cliente</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">RUT</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Correo</th>
                   <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Teléfono</th>
                   <th className="px-4 py-3 text-right text-sm font-semibold text-foreground">Total</th>
@@ -124,19 +188,20 @@ Notas: ${cotizacion.notas || "Sin notas"}
                 {cotizacionesFiltradas.map((cotizacion) => (
                   <tr key={cotizacion.id} className="border-b border-border hover:bg-muted/50">
                     <td className="px-4 py-3 text-sm font-medium text-foreground">#{cotizacion.id}</td>
-                    <td className="px-4 py-3 text-sm text-foreground">{cotizacion.clienteNombre}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{cotizacion.cliente_nombre}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{getRut(cotizacion)}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground text-ellipsis">
-                      {cotizacion.clienteCorreo}
+                      {cotizacion.cliente_correo}
                     </td>
-                    <td className="px-4 py-3 text-sm text-foreground">{cotizacion.clienteTelefono}</td>
+                    <td className="px-4 py-3 text-sm text-foreground">{cotizacion.cliente_telefono || "N/A"}</td>
                     <td className="px-4 py-3 text-sm font-semibold text-right text-foreground">
-                      ${cotizacion.precioTotal.toLocaleString()}
+                      ${Number(cotizacion.precio_total).toLocaleString("es-CL")}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       <div className="flex gap-2">
                         <select
                           value={cotizacion.estado}
-                          onChange={(e) => handleCambiarEstado(cotizacion.id, e.target.value as Cotizacion["estado"])}
+                          onChange={(e) => handleCambiarEstado(cotizacion.id, e.target.value)}
                           className={`text-xs px-2 py-1 rounded capitalize ${getColorEstado(cotizacion.estado)}`}
                         >
                           <option value="pendiente">Pendiente</option>
@@ -146,22 +211,26 @@ Notas: ${cotizacion.notas || "Sin notas"}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {new Date(cotizacion.fechaCreacion).toLocaleDateString()}
+                      {new Date(cotizacion.created_at).toLocaleDateString("es-CL")}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-center gap-2">
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0 bg-transparent">
-                          <Eye className="h-4 w-4 text-blue-600" />
-                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           className="h-8 w-8 p-0 bg-transparent"
                           onClick={() => handleDescargarPDF(cotizacion)}
+                          title="Descargar PDF"
                         >
                           <Download className="h-4 w-4 text-green-600" />
                         </Button>
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0 bg-transparent">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 w-8 p-0 bg-transparent"
+                          onClick={() => handleEliminar(cotizacion.id)}
+                          title="Eliminar"
+                        >
                           <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
                       </div>
