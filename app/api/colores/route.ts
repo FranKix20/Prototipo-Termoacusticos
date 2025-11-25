@@ -20,7 +20,7 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from("colores")
-      .insert([{ nombre: body.nombre }])
+      .insert([{ nombre: body.nombre, precio: body.precio || 0 }])
       .select()
 
     if (error) throw error
@@ -42,6 +42,7 @@ export async function PUT(request: Request) {
     const updateData: Record<string, any> = {}
 
     if (datos.nombre !== undefined) updateData.nombre = datos.nombre
+    if (datos.precio !== undefined) updateData.precio = datos.precio
 
     const { error } = await supabase.from("colores").update(updateData).eq("id", id)
 

@@ -23,22 +23,13 @@ export async function POST(request: Request) {
       .insert([
         {
           descripcion: body.descripcion,
-          material_id: body.materialId,
-          ancho: body.ancho,
-          alto: body.alto,
-          cantidad_cristal: body.cantidadCristal,
-          porcentaje_quincalleria: body.porcentajeQuincalleria || 0,
-          largo_perfiles: body.largoPerfiles || 0,
-          minimo: body.minimo || 0,
-          maximo: body.maximo || 0,
-          ganancia: body.ganancia || 0,
+          precio_por_m2: body.precio_por_m2 || 0,
         },
       ])
       .select()
 
     if (error) throw error
 
-    // Fetch all tipos to return updated list
     const { data: allTipos } = await supabase.from("tipos").select("*").order("id", { ascending: true })
 
     return Response.json({ data: allTipos || [] })
@@ -56,21 +47,12 @@ export async function PUT(request: Request) {
     const updateData: Record<string, any> = {}
 
     if (datos.descripcion !== undefined) updateData.descripcion = datos.descripcion
-    if (datos.materialId !== undefined) updateData.material_id = datos.materialId
-    if (datos.ancho !== undefined) updateData.ancho = datos.ancho
-    if (datos.alto !== undefined) updateData.alto = datos.alto
-    if (datos.cantidadCristal !== undefined) updateData.cantidad_cristal = datos.cantidadCristal
-    if (datos.porcentajeQuincalleria !== undefined) updateData.porcentaje_quincalleria = datos.porcentajeQuincalleria
-    if (datos.largoPerfiles !== undefined) updateData.largo_perfiles = datos.largoPerfiles
-    if (datos.minimo !== undefined) updateData.minimo = datos.minimo
-    if (datos.maximo !== undefined) updateData.maximo = datos.maximo
-    if (datos.ganancia !== undefined) updateData.ganancia = datos.ganancia
+    if (datos.precio_por_m2 !== undefined) updateData.precio_por_m2 = datos.precio_por_m2
 
     const { error } = await supabase.from("tipos").update(updateData).eq("id", id)
 
     if (error) throw error
 
-    // Fetch all tipos to return updated list
     const { data: allTipos } = await supabase.from("tipos").select("*").order("id", { ascending: true })
 
     return Response.json({ data: allTipos || [] })
@@ -89,7 +71,6 @@ export async function DELETE(request: Request) {
 
     if (error) throw error
 
-    // Fetch all tipos to return updated list
     const { data: allTipos } = await supabase.from("tipos").select("*").order("id", { ascending: true })
 
     return Response.json({ data: allTipos || [] })

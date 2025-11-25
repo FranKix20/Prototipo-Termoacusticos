@@ -36,6 +36,7 @@ export default function LoginPage() {
         localStorage.setItem("admin_usuario_id", data.usuario.id.toString())
         localStorage.setItem("admin_email", data.usuario.correo)
         localStorage.setItem("admin_nombre", data.usuario.nombre)
+        localStorage.setItem("admin_rol", data.usuario.rol)
         router.push("/admin")
       } else {
         setError(data.error || "Error al iniciar sesión")

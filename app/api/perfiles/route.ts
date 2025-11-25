@@ -24,7 +24,9 @@ export async function POST(request: Request) {
         {
           nombre: body.nombre,
           descripcion: body.descripcion,
-          grosor: body.grosor,
+          precio_base: body.precio_base || 0,
+          ancho_base: body.ancho_base || 1000,
+          alto_base: body.alto_base || 1000,
         },
       ])
       .select()
@@ -49,7 +51,9 @@ export async function PUT(request: Request) {
 
     if (datos.nombre !== undefined) updateData.nombre = datos.nombre
     if (datos.descripcion !== undefined) updateData.descripcion = datos.descripcion
-    if (datos.grosor !== undefined) updateData.grosor = datos.grosor
+    if (datos.precio_base !== undefined) updateData.precio_base = datos.precio_base
+    if (datos.ancho_base !== undefined) updateData.ancho_base = datos.ancho_base
+    if (datos.alto_base !== undefined) updateData.alto_base = datos.alto_base
 
     const { error } = await supabase.from("perfiles").update(updateData).eq("id", id)
 

@@ -18,16 +18,28 @@ export async function POST(request: Request) {
     const supabase = await createClient()
     const body = await request.json()
 
-    const { data, error } = await supabase
-      .from("imagenes")
-      .insert([
-        {
-          nombre: body.nombre,
-          url: body.url,
-          tipo: body.tipo,
-        },
-      ])
-      .select()
+    if (body.tipo === "Logo") {
+      const { data: existingLogos } = await supabase.from("imagenes").select("*").eq("tipo", "Logo")
+
+      if (existingLogos && existingLogos.length > 0) {
+        return Response.json(
+          { error: "Solo puede existir un logo. Por favor elimina el logo existente primero." },
+          { status: 400 },
+        )
+      }
+    }
+
+    const insertData: any = {
+      nombre: body.nombre,
+      url: body.url,
+      tipo: body.tipo,
+    }
+
+    if (body.tipo === "Producto" && body.producto_id) {
+      insertData.producto_id = body.producto_id
+    }
+
+    const { data, error } = await supabase.from("imagenes").insert([insertData]).select()
 
     if (error) throw error
 

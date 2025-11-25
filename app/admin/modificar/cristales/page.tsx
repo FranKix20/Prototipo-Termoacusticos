@@ -25,7 +25,6 @@ export default function ModificarCristalesPage() {
       setCristales(data)
       setLoading(false)
     } catch (error) {
-      console.error("Error fetching cristales:", error)
       toast({ title: "Error", description: "No se pudieron cargar los cristales", variant: "destructive" })
       setLoading(false)
     }
@@ -48,7 +47,6 @@ export default function ModificarCristalesPage() {
       setCristales(data)
       toast({ title: "Éxito", description: "Cristal actualizado correctamente" })
     } catch (error) {
-      console.error("Error updating cristal:", error)
       toast({ title: "Error", description: "No se pudo actualizar el cristal", variant: "destructive" })
     }
   }
@@ -68,7 +66,6 @@ export default function ModificarCristalesPage() {
         setCristales(data)
         toast({ title: "Éxito", description: "Cristal eliminado correctamente" })
       } catch (error) {
-        console.error("Error deleting cristal:", error)
         toast({ title: "Error", description: "No se pudo eliminar el cristal", variant: "destructive" })
       }
     }
@@ -91,7 +88,6 @@ export default function ModificarCristalesPage() {
       setCristales(data)
       toast({ title: "Éxito", description: "Cristal agregado correctamente" })
     } catch (error) {
-      console.error("Error adding cristal:", error)
       toast({ title: "Error", description: "No se pudo agregar el cristal", variant: "destructive" })
     }
   }
@@ -118,10 +114,10 @@ export default function ModificarCristalesPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead>ID</TableHead>
+              <TableHead className="w-16">ID</TableHead>
               <TableHead>Descripción Cristal</TableHead>
-              <TableHead>Precio</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className="w-32">Precio (CLP)</TableHead>
+              <TableHead className="w-24">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -132,15 +128,18 @@ export default function ModificarCristalesPage() {
                   <Input
                     value={cristal.descripcion || ""}
                     onChange={(e) => handleEdit(cristal, "descripcion", e.target.value)}
-                    className="w-96 h-8"
+                    className="w-full h-8"
+                    placeholder="Descripción"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     type="number"
-                    value={cristal.precio || 0}
+                    value={cristal.precio || ""}
                     onChange={(e) => handleEdit(cristal, "precio", Number.parseFloat(e.target.value) || 0)}
-                    className="w-24 h-8"
+                    onFocus={(e) => e.target.value === "0" && e.target.select()}
+                    className="w-full h-8"
+                    placeholder="0"
                   />
                 </TableCell>
                 <TableCell>
@@ -148,7 +147,7 @@ export default function ModificarCristalesPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDelete(cristal.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

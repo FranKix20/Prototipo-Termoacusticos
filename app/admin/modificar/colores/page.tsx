@@ -20,14 +20,11 @@ export default function ModificarColoresPage() {
 
   const fetchColores = async () => {
     try {
-      console.log("[v0] Fetching colores...")
       const res = await fetch("/api/colores")
       const { data } = await res.json()
-      console.log("[v0] Colores fetched:", data)
       setColores(data)
       setLoading(false)
     } catch (error) {
-      console.error("[v0] Error fetching colores:", error)
       toast({ title: "Error", description: "No se pudieron cargar los colores", variant: "destructive" })
       setLoading(false)
     }
@@ -35,8 +32,6 @@ export default function ModificarColoresPage() {
 
   const handleEdit = async (color: Color, field: keyof Color, value: any) => {
     try {
-      console.log("[v0] Editing color field:", field, "with value:", value)
-
       const res = await fetch("/api/colores", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -52,7 +47,6 @@ export default function ModificarColoresPage() {
       setColores(data)
       toast({ title: "Éxito", description: "Color actualizado correctamente" })
     } catch (error) {
-      console.error("[v0] Error updating color:", error)
       toast({ title: "Error", description: "No se pudo actualizar el color", variant: "destructive" })
     }
   }
@@ -60,7 +54,6 @@ export default function ModificarColoresPage() {
   const handleDelete = async (id: number) => {
     if (confirm("¿Estás seguro de que quieres eliminar este color?")) {
       try {
-        console.log("[v0] Deleting color with id:", id)
         const res = await fetch("/api/colores", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -73,7 +66,6 @@ export default function ModificarColoresPage() {
         setColores(data)
         toast({ title: "Éxito", description: "Color eliminado correctamente" })
       } catch (error) {
-        console.error("[v0] Error deleting color:", error)
         toast({ title: "Error", description: "No se pudo eliminar el color", variant: "destructive" })
       }
     }
@@ -81,12 +73,12 @@ export default function ModificarColoresPage() {
 
   const handleAdd = async () => {
     try {
-      console.log("[v0] Adding new color...")
       const res = await fetch("/api/colores", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: "Nuevo Color",
+          precio: 0,
         }),
       })
 
@@ -96,7 +88,6 @@ export default function ModificarColoresPage() {
       setColores(data)
       toast({ title: "Éxito", description: "Color agregado correctamente" })
     } catch (error) {
-      console.error("[v0] Error adding color:", error)
       toast({ title: "Error", description: "No se pudo agregar el color", variant: "destructive" })
     }
   }
@@ -123,9 +114,10 @@ export default function ModificarColoresPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead>ID</TableHead>
+              <TableHead className="w-16">ID</TableHead>
               <TableHead>Nombre Color</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className="w-32">Precio (CLP)</TableHead>
+              <TableHead className="w-24">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -136,7 +128,18 @@ export default function ModificarColoresPage() {
                   <Input
                     value={color.nombre || ""}
                     onChange={(e) => handleEdit(color, "nombre", e.target.value)}
-                    className="w-96 h-8"
+                    className="w-full h-8"
+                    placeholder="Nombre del color"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    value={color.precio || ""}
+                    onChange={(e) => handleEdit(color, "precio", Number.parseInt(e.target.value) || 0)}
+                    onFocus={(e) => e.target.value === "0" && e.target.select()}
+                    className="w-full h-8"
+                    placeholder="0"
                   />
                 </TableCell>
                 <TableCell>
@@ -144,7 +147,7 @@ export default function ModificarColoresPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDelete(color.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

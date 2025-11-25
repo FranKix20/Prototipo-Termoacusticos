@@ -20,14 +20,11 @@ export default function ModificarPerfilesPage() {
 
   const fetchPerfiles = async () => {
     try {
-      console.log("[v0] Fetching perfiles...")
       const res = await fetch("/api/perfiles")
       const { data } = await res.json()
-      console.log("[v0] Perfiles fetched:", data)
       setPerfiles(data)
       setLoading(false)
     } catch (error) {
-      console.error("[v0] Error fetching perfiles:", error)
       toast({ title: "Error", description: "No se pudieron cargar los perfiles", variant: "destructive" })
       setLoading(false)
     }
@@ -35,8 +32,6 @@ export default function ModificarPerfilesPage() {
 
   const handleEdit = async (perfil: Perfil, field: keyof Perfil, value: any) => {
     try {
-      console.log("[v0] Editing perfil field:", field, "with value:", value)
-
       const res = await fetch("/api/perfiles", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -52,7 +47,6 @@ export default function ModificarPerfilesPage() {
       setPerfiles(data)
       toast({ title: "Éxito", description: "Perfil actualizado correctamente" })
     } catch (error) {
-      console.error("[v0] Error updating perfil:", error)
       toast({ title: "Error", description: "No se pudo actualizar el perfil", variant: "destructive" })
     }
   }
@@ -60,7 +54,6 @@ export default function ModificarPerfilesPage() {
   const handleDelete = async (id: number) => {
     if (confirm("¿Estás seguro de que quieres eliminar este perfil?")) {
       try {
-        console.log("[v0] Deleting perfil with id:", id)
         const res = await fetch("/api/perfiles", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -73,7 +66,6 @@ export default function ModificarPerfilesPage() {
         setPerfiles(data)
         toast({ title: "Éxito", description: "Perfil eliminado correctamente" })
       } catch (error) {
-        console.error("[v0] Error deleting perfil:", error)
         toast({ title: "Error", description: "No se pudo eliminar el perfil", variant: "destructive" })
       }
     }
@@ -81,14 +73,15 @@ export default function ModificarPerfilesPage() {
 
   const handleAdd = async () => {
     try {
-      console.log("[v0] Adding new perfil...")
       const res = await fetch("/api/perfiles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nombre: "Nuevo Perfil",
           descripcion: "Descripción del perfil",
-          grosor: 70,
+          precio_base: 0,
+          ancho_base: 1000,
+          alto_base: 1000,
         }),
       })
 
@@ -98,9 +91,12 @@ export default function ModificarPerfilesPage() {
       setPerfiles(data)
       toast({ title: "Éxito", description: "Perfil agregado correctamente" })
     } catch (error) {
-      console.error("[v0] Error adding perfil:", error)
       toast({ title: "Error", description: "No se pudo agregar el perfil", variant: "destructive" })
     }
+  }
+
+  const calcularMetrosCuadrados = (perfil: Perfil) => {
+    return ((perfil.ancho_base * perfil.alto_base) / 1000000).toFixed(2)
   }
 
   if (loading) {
@@ -125,11 +121,14 @@ export default function ModificarPerfilesPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead>ID</TableHead>
+              <TableHead className="w-16">ID</TableHead>
               <TableHead>Nombre</TableHead>
               <TableHead>Descripción</TableHead>
-              <TableHead>Grosor (mm)</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className="w-32">Precio Base (CLP)</TableHead>
+              <TableHead className="w-28">Ancho (mm)</TableHead>
+              <TableHead className="w-28">Alto (mm)</TableHead>
+              <TableHead className="w-28">m² (calc.)</TableHead>
+              <TableHead className="w-24">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -140,30 +139,57 @@ export default function ModificarPerfilesPage() {
                   <Input
                     value={perfil.nombre || ""}
                     onChange={(e) => handleEdit(perfil, "nombre", e.target.value)}
-                    className="w-40 h-8"
+                    className="w-full h-8"
+                    placeholder="Nombre del perfil"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     value={perfil.descripcion || ""}
                     onChange={(e) => handleEdit(perfil, "descripcion", e.target.value)}
-                    className="w-80 h-8"
+                    className="w-full h-8"
+                    placeholder="Descripción"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     type="number"
-                    value={perfil.grosor || 0}
-                    onChange={(e) => handleEdit(perfil, "grosor", Number.parseInt(e.target.value) || 0)}
-                    className="w-24 h-8"
+                    value={perfil.precio_base || ""}
+                    onChange={(e) => handleEdit(perfil, "precio_base", Number.parseInt(e.target.value) || 0)}
+                    onFocus={(e) => e.target.value === "0" && e.target.select()}
+                    className="w-full h-8"
+                    placeholder="0"
                   />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    value={perfil.ancho_base || ""}
+                    onChange={(e) => handleEdit(perfil, "ancho_base", Number.parseInt(e.target.value) || 0)}
+                    onFocus={(e) => e.target.value === "0" && e.target.select()}
+                    className="w-full h-8"
+                    placeholder="1000"
+                  />
+                </TableCell>
+                <TableCell>
+                  <Input
+                    type="number"
+                    value={perfil.alto_base || ""}
+                    onChange={(e) => handleEdit(perfil, "alto_base", Number.parseInt(e.target.value) || 0)}
+                    onFocus={(e) => e.target.value === "0" && e.target.select()}
+                    className="w-full h-8"
+                    placeholder="1000"
+                  />
+                </TableCell>
+                <TableCell className="text-center font-medium text-primary">
+                  {calcularMetrosCuadrados(perfil)} m²
                 </TableCell>
                 <TableCell>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDelete(perfil.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

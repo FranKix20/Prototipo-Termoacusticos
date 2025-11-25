@@ -4,15 +4,7 @@
 export interface Tipo {
   id: number
   descripcion: string
-  materialId: number
-  ancho: string
-  alto: string
-  cantidadCristal: string
-  porcentajeQuincalleria: number
-  largoPerfiles: number
-  minimo: number
-  maximo: number
-  ganancia: number
+  precio_por_m2: number
 }
 
 export interface Material {
@@ -32,13 +24,16 @@ export interface Cristal {
 export interface Color {
   id: number
   nombre: string
+  precio: number
 }
 
 export interface Perfil {
   id: number
   nombre: string
   descripcion: string
-  grosor: number
+  precio_base: number
+  ancho_base: number
+  alto_base: number
 }
 
 export interface Quincalleria {
@@ -52,7 +47,8 @@ export interface Imagen {
   id: number
   nombre: string
   url: string
-  tipo: string
+  tipo: "Logo" | "Producto" | "Pie de pagina" | "Encabezado"
+  producto_id?: number // Solo requerido cuando tipo es 'Producto'
 }
 
 // Interfaz de Usuario
@@ -61,6 +57,7 @@ export interface Usuario {
   nombre: string
   correo: string
   contraseña: string
+  rol: "administrador" | "usuario"
   fechaCreacion: string
 }
 
@@ -97,41 +94,17 @@ export const DATABASE = {
     {
       id: 1,
       descripcion: "VENTANA CORREDERA CHICA CLASE A",
-      materialId: 1,
-      ancho: "(X/2)-65",
-      alto: "Y-124",
-      cantidadCristal: "2*Z",
-      porcentajeQuincalleria: 0,
-      largoPerfiles: 1700,
-      minimo: 0,
-      maximo: 1700,
-      ganancia: 175,
+      precio_por_m2: 175000,
     },
     {
       id: 2,
       descripcion: "VENTANA CORREDERA GRANDE CLASE A",
-      materialId: 1,
-      ancho: "(X/2)-65",
-      alto: "Y-124",
-      cantidadCristal: "2*7",
-      porcentajeQuincalleria: 0,
-      largoPerfiles: 1700,
-      minimo: 1700,
-      maximo: 2400,
-      ganancia: 155,
+      precio_por_m2: 155000,
     },
     {
       id: 3,
       descripcion: "VENTANA PAÑO FIJO CLASE A",
-      materialId: 1,
-      ancho: "X-64",
-      alto: "Y-64",
-      cantidadCristal: "Z",
-      porcentajeQuincalleria: 0,
-      largoPerfiles: 0,
-      minimo: 0,
-      maximo: 0,
-      ganancia: 125,
+      precio_por_m2: 125000,
     },
   ] as Tipo[],
 
@@ -197,49 +170,49 @@ export const DATABASE = {
     },
     {
       id: 8,
-      nombre: "5 mm",
+      descripcion: "5 mm",
       precio: 25000,
     },
     {
       id: 9,
-      nombre: "4 mm",
+      descripcion: "4 mm",
       precio: 23000,
     },
     {
       id: 10,
-      nombre: "6 mm",
+      descripcion: "6 mm",
       precio: 27000,
     },
     {
       id: 11,
-      nombre: "6 mm Lam",
+      descripcion: "6 mm Lam",
       precio: 38000,
     },
     {
       id: 12,
-      nombre: "8 mm Lam",
+      descripcion: "8 mm Lam",
       precio: 45000,
     },
     {
       id: 13,
-      nombre: "8 mm",
+      descripcion: "8 mm",
       precio: 32000,
     },
     {
       id: 14,
-      nombre: "10 mm",
+      descripcion: "10 mm",
       precio: 38000,
     },
   ] as Cristal[],
 
   colores: [
-    { id: 1, nombre: "NOGAL" },
-    { id: 2, nombre: "TITANIO" },
-    { id: 3, nombre: "MATE" },
-    { id: 4, nombre: "BLANCO" },
-    { id: 5, nombre: "ANTRACITA" },
-    { id: 6, nombre: "ROBLE DORADO" },
-    { id: 7, nombre: "NEGRO" },
+    { id: 1, nombre: "NOGAL", precio: 15000 },
+    { id: 2, nombre: "TITANIO", precio: 12000 },
+    { id: 3, nombre: "MATE", precio: 8000 },
+    { id: 4, nombre: "BLANCO", precio: 5000 },
+    { id: 5, nombre: "ANTRACITA", precio: 18000 },
+    { id: 6, nombre: "ROBLE DORADO", precio: 20000 },
+    { id: 7, nombre: "NEGRO", precio: 10000 },
   ] as Color[],
 
   perfiles: [
@@ -247,13 +220,17 @@ export const DATABASE = {
       id: 1,
       nombre: "Perfil Clase A",
       descripcion: "Perfil de aluminio premium con aislamiento superior",
-      grosor: 70,
+      precio_base: 45000,
+      ancho_base: 1000,
+      alto_base: 1000,
     },
     {
       id: 2,
       nombre: "Perfil Clase B",
       descripcion: "Perfil estándar con buen aislamiento",
-      grosor: 60,
+      precio_base: 35000,
+      ancho_base: 1000,
+      alto_base: 1000,
     },
   ] as Perfil[],
 
@@ -286,6 +263,7 @@ export const DATABASE = {
       nombre: "Administrador",
       correo: "admin@termoacusticos.com",
       contraseña: "admin123", // En producción usar hash bcrypt
+      rol: "administrador",
       fechaCreacion: new Date().toISOString(),
     },
   ] as Usuario[],
@@ -412,6 +390,7 @@ export function agregarUsuario(usuario: Omit<Usuario, "id" | "fechaCreacion">) {
   DATABASE.usuarios.push({
     ...usuario,
     id: newId,
+    rol: usuario.rol || "usuario",
     fechaCreacion: new Date().toISOString(),
   })
   return newId

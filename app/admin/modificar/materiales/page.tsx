@@ -20,14 +20,11 @@ export default function ModificarMaterialesPage() {
 
   const fetchMateriales = async () => {
     try {
-      console.log("[v0] Fetching materiales...")
       const res = await fetch("/api/materiales")
       const { data } = await res.json()
-      console.log("[v0] Materiales fetched:", data)
       setMateriales(data)
       setLoading(false)
     } catch (error) {
-      console.error("[v0] Error fetching materiales:", error)
       toast({ title: "Error", description: "No se pudieron cargar los materiales", variant: "destructive" })
       setLoading(false)
     }
@@ -35,8 +32,6 @@ export default function ModificarMaterialesPage() {
 
   const handleEdit = async (material: Material, field: keyof Material, value: any) => {
     try {
-      console.log("[v0] Editing material field:", field, "with value:", value)
-
       const fieldMap: Record<string, string> = {
         nombre: "nombre",
         textoLibrePDF: "textoLibrePDF",
@@ -59,7 +54,6 @@ export default function ModificarMaterialesPage() {
       setMateriales(data)
       toast({ title: "Éxito", description: "Material actualizado correctamente" })
     } catch (error) {
-      console.error("[v0] Error updating material:", error)
       toast({ title: "Error", description: "No se pudo actualizar el material", variant: "destructive" })
     }
   }
@@ -67,7 +61,6 @@ export default function ModificarMaterialesPage() {
   const handleDelete = async (id: number) => {
     if (confirm("¿Estás seguro de que quieres eliminar este material?")) {
       try {
-        console.log("[v0] Deleting material with id:", id)
         const res = await fetch("/api/materiales", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -80,7 +73,6 @@ export default function ModificarMaterialesPage() {
         setMateriales(data)
         toast({ title: "Éxito", description: "Material eliminado correctamente" })
       } catch (error) {
-        console.error("[v0] Error deleting material:", error)
         toast({ title: "Error", description: "No se pudo eliminar el material", variant: "destructive" })
       }
     }
@@ -88,7 +80,6 @@ export default function ModificarMaterialesPage() {
 
   const handleAdd = async () => {
     try {
-      console.log("[v0] Adding new material...")
       const res = await fetch("/api/materiales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -106,7 +97,6 @@ export default function ModificarMaterialesPage() {
       setMateriales(data)
       toast({ title: "Éxito", description: "Material agregado correctamente" })
     } catch (error) {
-      console.error("[v0] Error adding material:", error)
       toast({ title: "Error", description: "No se pudo agregar el material", variant: "destructive" })
     }
   }
@@ -133,12 +123,12 @@ export default function ModificarMaterialesPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead>ID</TableHead>
-              <TableHead>Nombre Material</TableHead>
-              <TableHead>Texto Libre PDF</TableHead>
-              <TableHead>Texto 1</TableHead>
-              <TableHead>Texto 2</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className="w-16">ID</TableHead>
+              <TableHead className="min-w-48">Nombre Material</TableHead>
+              <TableHead className="min-w-96">Texto Libre PDF</TableHead>
+              <TableHead className="min-w-40">Texto 1</TableHead>
+              <TableHead className="min-w-40">Texto 2</TableHead>
+              <TableHead className="w-24">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -149,28 +139,32 @@ export default function ModificarMaterialesPage() {
                   <Input
                     value={material.nombre || ""}
                     onChange={(e) => handleEdit(material, "nombre", e.target.value)}
-                    className="w-80 h-8"
+                    className="w-full h-8 min-w-44"
+                    placeholder="Nombre"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     value={material.textoLibrePDF || ""}
                     onChange={(e) => handleEdit(material, "textoLibrePDF", e.target.value)}
-                    className="w-96 h-8"
+                    className="w-full h-8 min-w-80"
+                    placeholder="Descripción para PDF"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     value={material.texto1 || ""}
                     onChange={(e) => handleEdit(material, "texto1", e.target.value)}
-                    className="w-48 h-8"
+                    className="w-full h-8 min-w-36"
+                    placeholder="Texto 1"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     value={material.texto2 || ""}
                     onChange={(e) => handleEdit(material, "texto2", e.target.value)}
-                    className="w-48 h-8"
+                    className="w-full h-8 min-w-36"
+                    placeholder="Texto 2"
                   />
                 </TableCell>
                 <TableCell>
@@ -178,7 +172,7 @@ export default function ModificarMaterialesPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDelete(material.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

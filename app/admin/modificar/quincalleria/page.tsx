@@ -20,14 +20,11 @@ export default function ModificarQuincalleriaPage() {
 
   const fetchQuincallerias = async () => {
     try {
-      console.log("[v0] Fetching quincallerias...")
       const res = await fetch("/api/quincalleria")
       const { data } = await res.json()
-      console.log("[v0] Quincallerias fetched:", data)
       setQuincallerias(data)
       setLoading(false)
     } catch (error) {
-      console.error("[v0] Error fetching quincallerias:", error)
       toast({ title: "Error", description: "No se pudieron cargar las quincallerías", variant: "destructive" })
       setLoading(false)
     }
@@ -35,8 +32,6 @@ export default function ModificarQuincalleriaPage() {
 
   const handleEdit = async (item: Quincalleria, field: keyof Quincalleria, value: any) => {
     try {
-      console.log("[v0] Editing quincalleria field:", field, "with value:", value)
-
       const res = await fetch("/api/quincalleria", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -52,7 +47,6 @@ export default function ModificarQuincalleriaPage() {
       setQuincallerias(data)
       toast({ title: "Éxito", description: "Quincallería actualizada correctamente" })
     } catch (error) {
-      console.error("[v0] Error updating quincalleria:", error)
       toast({ title: "Error", description: "No se pudo actualizar la quincallería", variant: "destructive" })
     }
   }
@@ -60,7 +54,6 @@ export default function ModificarQuincalleriaPage() {
   const handleDelete = async (id: number) => {
     if (confirm("¿Estás seguro de que quieres eliminar esta quincallería?")) {
       try {
-        console.log("[v0] Deleting quincalleria with id:", id)
         const res = await fetch("/api/quincalleria", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -73,7 +66,6 @@ export default function ModificarQuincalleriaPage() {
         setQuincallerias(data)
         toast({ title: "Éxito", description: "Quincallería eliminada correctamente" })
       } catch (error) {
-        console.error("[v0] Error deleting quincalleria:", error)
         toast({ title: "Error", description: "No se pudo eliminar la quincallería", variant: "destructive" })
       }
     }
@@ -81,7 +73,6 @@ export default function ModificarQuincalleriaPage() {
 
   const handleAdd = async () => {
     try {
-      console.log("[v0] Adding new quincalleria...")
       const res = await fetch("/api/quincalleria", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -98,7 +89,6 @@ export default function ModificarQuincalleriaPage() {
       setQuincallerias(data)
       toast({ title: "Éxito", description: "Quincallería agregada correctamente" })
     } catch (error) {
-      console.error("[v0] Error adding quincalleria:", error)
       toast({ title: "Error", description: "No se pudo agregar la quincallería", variant: "destructive" })
     }
   }
@@ -125,11 +115,11 @@ export default function ModificarQuincalleriaPage() {
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-100">
-              <TableHead>ID</TableHead>
+              <TableHead className="w-16">ID</TableHead>
               <TableHead>Nombre</TableHead>
               <TableHead>Descripción</TableHead>
-              <TableHead>Precio</TableHead>
-              <TableHead>Acciones</TableHead>
+              <TableHead className="w-32">Precio (CLP)</TableHead>
+              <TableHead className="w-24">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -140,22 +130,26 @@ export default function ModificarQuincalleriaPage() {
                   <Input
                     value={item.nombre || ""}
                     onChange={(e) => handleEdit(item, "nombre", e.target.value)}
-                    className="w-40 h-8"
+                    className="w-full h-8"
+                    placeholder="Nombre"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     value={item.descripcion || ""}
                     onChange={(e) => handleEdit(item, "descripcion", e.target.value)}
-                    className="w-80 h-8"
+                    className="w-full h-8"
+                    placeholder="Descripción"
                   />
                 </TableCell>
                 <TableCell>
                   <Input
                     type="number"
-                    value={item.precio || 0}
+                    value={item.precio || ""}
                     onChange={(e) => handleEdit(item, "precio", Number.parseInt(e.target.value) || 0)}
-                    className="w-24 h-8"
+                    onFocus={(e) => e.target.value === "0" && e.target.select()}
+                    className="w-full h-8"
+                    placeholder="0"
                   />
                 </TableCell>
                 <TableCell>
@@ -163,7 +157,7 @@ export default function ModificarQuincalleriaPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDelete(item.id)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

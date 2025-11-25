@@ -21,7 +21,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { nombre, correo, contraseña } = await request.json()
+    const { nombre, correo, contraseña, rol } = await request.json()
 
     // Validación
     if (!nombre || !correo || !contraseña) {
@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
           nombre,
           correo,
           contraseña, // En producción usar bcrypt
+          rol: rol || "usuario",
         },
       ])
       .select()
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, nombre, correo, contraseña } = await request.json()
+    const { id, nombre, correo, contraseña, rol } = await request.json()
 
     if (!id) {
       return NextResponse.json({ error: "ID requerido" }, { status: 400 })
@@ -71,17 +72,18 @@ export async function PUT(request: NextRequest) {
 
     const supabase = await createClient()
 
-    const { data, error } = await supabase
-      .from("usuarios")
-      .update({
-        nombre,
-        correo,
-        contraseña,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", id)
-      .select()
-      .single()
+    const updateData: any = {
+      nombre,
+      correo,
+      contraseña,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (rol) {
+      updateData.rol = rol
+    }
+
+    const { data, error } = await supabase.from("usuarios").update(updateData).eq("id", id).select().single()
 
     if (error) {
       console.error("[v0] Error updating usuario:", error)

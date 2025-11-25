@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
 
     const { data: usuario, error } = await supabase
       .from("usuarios")
-      .select("id, nombre, correo")
+      .select("id, nombre, correo, rol")
       .eq("correo", correo)
       .eq("contraseña", contraseña)
       .single()
@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
           id: usuario.id,
           nombre: usuario.nombre,
           correo: usuario.correo,
+          rol: usuario.rol || "usuario",
         },
       },
       { status: 200 },

@@ -20,8 +20,8 @@ interface VentanaItem {
   cristalId: number
   colorId: number
   cantidad: number
-  ancho: number
-  alto: number
+  ancho: string // Changed to string to allow empty values
+  alto: string // Changed to string to allow empty values
 }
 
 interface Opcion {
@@ -41,9 +41,9 @@ export default function CotizarPage() {
   })
 
   const [datosAdicionales, setDatosAdicionales] = useState({
-    costoDespacho: 0,
-    costoInstalacion: 0,
-    gananciaGlobal: 0,
+    costoDespacho: "" as string | number,
+    costoInstalacion: "" as string | number,
+    gananciaGlobal: "" as string | number,
   })
 
   const [opciones, setOpciones] = useState<Opcion[]>([
@@ -58,8 +58,8 @@ export default function CotizarPage() {
           cristalId: 0,
           colorId: 0,
           cantidad: 1,
-          ancho: 0,
-          alto: 0,
+          ancho: "", // Empty string instead of 0
+          alto: "", // Empty string instead of 0
         },
       ],
       total: 0,
@@ -101,302 +101,193 @@ export default function CotizarPage() {
   }
 
   const calcularValorTotal = (ventana: VentanaItem) => {
-    if (!ventana.tipoId || ventana.ancho === 0 || ventana.alto === 0) return 0
     const tipo = tipos.find((t) => t.id === ventana.tipoId)
     const cristal = cristales.find((c) => c.id === ventana.cristalId)
-    if (!tipo || !cristal) return 0
-    const area = (ventana.ancho * ventana.alto) / 10000
-    const precioBase = (tipo.ganancia * area) / 100
-    const precioCristal = cristal.precio * area
-    return Math.round((precioBase + precioCristal) * ventana.cantidad)
+    const color = colores.find((co) => co.id === ventana.colorId)
+
+    if (!tipo || !cristal || !color) return 0
+
+    const anchoNum = Number.parseFloat(ventana.ancho) || 0
+    const altoNum = Number.parseFloat(ventana.alto) || 0
+    const metrosCuadrados = (anchoNum / 1000) * (altoNum / 1000)
+    const precioBase = tipo.precio_por_m2 * metrosCuadrados
+    const precioCristal = cristal.precio * metrosCuadrados
+    const precioColor = color.precio * metrosCuadrados
+
+    return (precioBase + precioCristal + precioColor) * ventana.cantidad
+  }
+
+  const actualizarVentana = (opcionId: string, ventanaId: string, campo: string, valor: any) => {
+    setOpciones(
+      opciones.map((opcion) =>
+        opcion.id === opcionId
+          ? {
+              ...opcion,
+              ventanas: opcion.ventanas.map((v) => (v.id === ventanaId ? { ...v, [campo]: valor } : v)),
+            }
+          : opcion,
+      ),
+    )
   }
 
   const agregarVentana = (opcionId: string) => {
     setOpciones(
-      opciones.map((op) => {
-        if (op.id === opcionId) {
-          const ultimaVentana = op.ventanas[op.ventanas.length - 1]
-          const newId = (Math.max(...op.ventanas.map((v) => Number.parseInt(v.id)), 0) + 1).toString()
-          return {
-            ...op,
-            ventanas: [
-              ...op.ventanas,
-              {
-                id: newId,
-                tipoId: ultimaVentana.tipoId,
-                materialId: ultimaVentana.materialId,
-                cristalId: ultimaVentana.cristalId,
-                colorId: ultimaVentana.colorId,
-                cantidad: ultimaVentana.cantidad,
-                ancho: ultimaVentana.ancho,
-                alto: ultimaVentana.alto,
-              },
-            ],
-          }
-        }
-        return op
-      }),
+      opciones.map((opcion) =>
+        opcion.id === opcionId
+          ? {
+              ...opcion,
+              ventanas: [
+                ...opcion.ventanas,
+                {
+                  id: Date.now().toString(),
+                  tipoId: 0,
+                  materialId: 0,
+                  cristalId: 0,
+                  colorId: 0,
+                  cantidad: 1,
+                  ancho: "", // Empty string instead of 0
+                  alto: "", // Empty string instead of 0
+                },
+              ],
+            }
+          : opcion,
+      ),
     )
   }
 
   const eliminarVentana = (opcionId: string, ventanaId: string) => {
     setOpciones(
-      opciones.map((op) => {
-        if (op.id === opcionId) {
-          return {
-            ...op,
-            ventanas: op.ventanas.filter((v) => v.id !== ventanaId || op.ventanas.length > 1),
-          }
-        }
-        return op
-      }),
-    )
-  }
-
-  const actualizarVentana = (opcionId: string, ventanaId: string, campo: string, valor: any) => {
-    setOpciones(
-      opciones.map((op) => {
-        if (op.id === opcionId) {
-          return {
-            ...op,
-            ventanas: op.ventanas.map((v) => (v.id === ventanaId ? { ...v, [campo]: valor } : v)),
-          }
-        }
-        return op
-      }),
+      opciones.map((opcion) =>
+        opcion.id === opcionId
+          ? {
+              ...opcion,
+              ventanas: opcion.ventanas.filter((v) => v.id !== ventanaId),
+            }
+          : opcion,
+      ),
     )
   }
 
   const agregarOpcion = () => {
-    const primeraOpcion = opciones[0]
-    const newId = (Math.max(...opciones.map((o) => Number.parseInt(o.id)), 0) + 1).toString()
-
-    // Copiar ventanas de la primera opción con IDs nuevos
-    const ventanasCopiadas = primeraOpcion.ventanas.map((ventana, idx) => ({
-      id: (idx + 1).toString(),
-      tipoId: ventana.tipoId,
-      materialId: 0, // Dejar material vacío para que lo cambie el usuario
-      cristalId: ventana.cristalId,
-      colorId: ventana.colorId,
-      cantidad: ventana.cantidad,
-      ancho: ventana.ancho,
-      alto: ventana.alto,
-    }))
-
+    const newId = (opciones.length + 1).toString()
     setOpciones([
       ...opciones,
       {
         id: newId,
-        nombre: `Opción ${Number.parseInt(newId)}`,
-        ventanas: ventanasCopiadas,
+        nombre: `Opción ${newId}`,
+        ventanas: [
+          {
+            id: Date.now().toString(),
+            tipoId: 0,
+            materialId: 0,
+            cristalId: 0,
+            colorId: 0,
+            cantidad: 1,
+            ancho: "",
+            alto: "",
+          },
+        ],
         total: 0,
       },
     ])
-    toast({ title: "Éxito", description: "Nueva opción agregada con estructura replicada" })
   }
 
-  const eliminarOpcion = (id: string) => {
-    if (opciones.length > 1) {
-      setOpciones(opciones.filter((op) => op.id !== id))
-      toast({ title: "Éxito", description: "Opción eliminada" })
-    }
+  const eliminarOpcion = (opcionId: string) => {
+    setOpciones(opciones.filter((o) => o.id !== opcionId))
   }
 
   const generarPDF = () => {
-    if (!clientData.nombre || opciones.some((op) => op.ventanas.length === 0)) {
-      toast({ title: "Error", description: "Completa los datos del cliente y ventanas", variant: "destructive" })
+    const doc = new jsPDF()
+
+    doc.setFontSize(18)
+    doc.text("Cotización", 14, 22)
+
+    doc.setFontSize(11)
+    doc.text(`Cliente: ${clientData.nombre}`, 14, 35)
+    doc.text(`RUT: ${clientData.rut}`, 14, 42)
+    doc.text(`Email: ${clientData.email}`, 14, 49)
+    doc.text(`Teléfono: ${clientData.telefono}`, 14, 56)
+
+    let yPosition = 70
+
+    opciones.forEach((opcion) => {
+      doc.setFontSize(14)
+      doc.text(opcion.nombre, 14, yPosition)
+      yPosition += 10
+
+      const tableData = opcion.ventanas.map((v) => {
+        const tipo = tipos.find((t) => t.id === v.tipoId)
+        const material = materiales.find((m) => m.id === v.materialId)
+        const cristal = cristales.find((c) => c.id === v.cristalId)
+        const color = colores.find((co) => co.id === v.colorId)
+        return [
+          material?.nombre || "-",
+          tipo?.descripcion || "-",
+          cristal?.descripcion || "-",
+          color?.nombre || "-",
+          v.cantidad,
+          v.ancho,
+          v.alto,
+          `$${calcularValorTotal(v).toLocaleString("es-CL")}`,
+        ]
+      })
+
+      autoTable(doc, {
+        startY: yPosition,
+        head: [["Material", "Tipo", "Cristal", "Color", "Cant.", "Ancho", "Alto", "Total"]],
+        body: tableData,
+      })
+
+      yPosition = (doc as any).lastAutoTable.finalY + 10
+    })
+
+    doc.save("cotizacion.pdf")
+  }
+
+  const handleEnviarCotizacion = async () => {
+    if (!clientData.email || !clientData.nombre) {
+      toast({ title: "Error", description: "Complete los datos del cliente", variant: "destructive" })
       return
     }
 
+    const costoDespacho = Number(datosAdicionales.costoDespacho) || 0
+    const costoInstalacion = Number(datosAdicionales.costoInstalacion) || 0
+    const gananciaGlobal = Number(datosAdicionales.gananciaGlobal) || 0
+
     try {
-      console.log("[v0] Iniciando generación de PDF")
-      const pdf = new jsPDF()
-      let yPosition = 20
-
-      // Header
-      pdf.setFontSize(24)
-      pdf.setTextColor(26, 122, 111) // Teal color
-      pdf.text("TermoAcusticos", 20, yPosition)
-      yPosition += 10
-
-      pdf.setFontSize(10)
-      pdf.setTextColor(100, 100, 100)
-      pdf.text("Cotización de Termopaneles y Acústica", 20, yPosition)
-      yPosition += 15
-
-      // Client data
-      pdf.setFontSize(12)
-      pdf.setTextColor(0, 0, 0)
-      pdf.text("Datos del Cliente", 20, yPosition)
-      yPosition += 8
-
-      pdf.setFontSize(10)
-      pdf.text(`Nombre: ${clientData.nombre}`, 20, yPosition)
-      yPosition += 5
-      if (clientData.rut) {
-        pdf.text(`RUT: ${clientData.rut}`, 20, yPosition)
-        yPosition += 5
-      }
-      if (clientData.email) {
-        pdf.text(`Email: ${clientData.email}`, 20, yPosition)
-        yPosition += 5
-      }
-      if (clientData.telefono) {
-        pdf.text(`Teléfono: ${clientData.telefono}`, 20, yPosition)
-        yPosition += 5
-      }
-      if (clientData.direccion) {
-        pdf.text(`Dirección: ${clientData.direccion}`, 20, yPosition)
-        yPosition += 5
-      }
-      yPosition += 10
-
-      opciones.forEach((opcion, opcionIdx) => {
-        // Check if we need a new page
-        if (yPosition > 250) {
-          pdf.addPage()
-          yPosition = 20
-        }
-
-        pdf.setFontSize(14)
-        pdf.setTextColor(26, 122, 111)
-        pdf.text(opcion.nombre, 20, yPosition)
-        yPosition += 8
-
-        // Calculate totals for this option
-        let subtotal = 0
-        opcion.ventanas.forEach((ventana) => {
-          subtotal += calcularValorTotal(ventana)
-        })
-
-        // Table with windows
-        const tableData = opcion.ventanas.map((ventana, idx) => {
-          const tipo = tipos.find((t) => t.id === ventana.tipoId)
-          const material = materiales.find((m) => m.id === ventana.materialId)
-          const cristal = cristales.find((c) => c.id === ventana.cristalId)
-          const color = colores.find((c) => c.id === ventana.colorId)
-          const valor = calcularValorTotal(ventana)
-
-          return [
-            String(idx + 1),
-            tipo?.descripcion || "-",
-            material?.nombre || "-",
-            cristal?.descripcion || "-",
-            color?.nombre || "-",
-            String(ventana.cantidad),
-            `${ventana.ancho}x${ventana.alto}`,
-            `$${Math.round(valor / ventana.cantidad).toLocaleString("es-CL")}`,
-            `$${valor.toLocaleString("es-CL")}`,
-          ]
-        })
-
-        console.log("[v0] Generando tabla para", opcion.nombre)
-
-        autoTable(pdf, {
-          head: [["N°", "Tipo", "Material", "Cristal", "Color", "Cant.", "Medidas", "V. Unit.", "V. Total"]],
-          body: tableData,
-          startY: yPosition,
-          margin: { left: 20, right: 20 },
-          theme: "grid",
-          headStyles: {
-            fillColor: [26, 122, 111],
-            textColor: [255, 255, 255],
-            fontSize: 9,
-            fontStyle: "bold",
+      const response = await fetch("/api/enviar-cotizacion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientData,
+          opciones: opciones.map((opcion) => ({
+            ...opcion,
+            ventanas: opcion.ventanas.map((v) => ({
+              ...v,
+              tipo: tipos.find((t) => t.id === v.tipoId),
+              material: materiales.find((m) => m.id === v.materialId),
+              cristal: cristales.find((c) => c.id === v.cristalId),
+              color: colores.find((co) => co.id === v.colorId),
+              valorTotal: calcularValorTotal(v),
+            })),
+          })),
+          datosAdicionales: {
+            costoDespacho,
+            costoInstalacion,
+            gananciaGlobal,
           },
-          bodyStyles: {
-            textColor: [0, 0, 0],
-            fontSize: 8,
-          },
-          alternateRowStyles: { fillColor: [240, 240, 240] },
-          columnStyles: {
-            0: { cellWidth: 10 },
-            1: { cellWidth: 25 },
-            2: { cellWidth: 30 },
-            3: { cellWidth: 25 },
-            4: { cellWidth: 20 },
-            5: { cellWidth: 15 },
-            6: { cellWidth: 20 },
-            7: { cellWidth: 22 },
-            8: { cellWidth: 23 },
-          },
-        })
-
-        // @ts-ignore - autoTable adds finalY property
-        yPosition = pdf.lastAutoTable.finalY + 10
-
-        // Subtotal for this option
-        const totalConGanancia = Math.round(subtotal * (1 + datosAdicionales.gananciaGlobal / 100))
-        const totalFinal = totalConGanancia + datosAdicionales.costoDespacho + datosAdicionales.costoInstalacion
-
-        pdf.setFontSize(10)
-        pdf.setTextColor(0, 0, 0)
-        pdf.text(`Subtotal ${opcion.nombre}: $${subtotal.toLocaleString("es-CL")}`, 20, yPosition)
-        yPosition += 6
-
-        if (datosAdicionales.gananciaGlobal > 0) {
-          pdf.text(
-            `Con ganancia (${datosAdicionales.gananciaGlobal}%): $${totalConGanancia.toLocaleString("es-CL")}`,
-            20,
-            yPosition,
-          )
-          yPosition += 6
-        }
-        if (datosAdicionales.costoDespacho > 0) {
-          pdf.text(`Costo despacho: $${datosAdicionales.costoDespacho.toLocaleString("es-CL")}`, 20, yPosition)
-          yPosition += 6
-        }
-        if (datosAdicionales.costoInstalacion > 0) {
-          pdf.text(`Costo instalación: $${datosAdicionales.costoInstalacion.toLocaleString("es-CL")}`, 20, yPosition)
-          yPosition += 6
-        }
-
-        pdf.setFontSize(12)
-        pdf.setTextColor(26, 122, 111)
-        pdf.setFont(undefined, "bold")
-        pdf.text(`Total ${opcion.nombre}: $${totalFinal.toLocaleString("es-CL")}`, 20, yPosition)
-        pdf.setFont(undefined, "normal")
-        yPosition += 15
+          notas,
+        }),
       })
 
-      // Notes
-      if (notas) {
-        if (yPosition > 250) {
-          pdf.addPage()
-          yPosition = 20
-        }
-        pdf.setFontSize(11)
-        pdf.setTextColor(0, 0, 0)
-        pdf.setFont(undefined, "bold")
-        pdf.text("Notas:", 20, yPosition)
-        pdf.setFont(undefined, "normal")
-        yPosition += 6
-        pdf.setFontSize(9)
-        const notesLines = pdf.splitTextToSize(notas, 170)
-        pdf.text(notesLines, 20, yPosition)
+      if (response.ok) {
+        toast({ title: "Éxito", description: "Cotización enviada por correo" })
+      } else {
+        toast({ title: "Error", description: "Error al enviar cotización", variant: "destructive" })
       }
-
-      console.log("[v0] PDF generado exitosamente")
-
-      const fileName = `Cotizacion_${clientData.nombre.replace(/\s+/g, "_")}_${new Date().toLocaleDateString("es-CL").replace(/\//g, "-")}.pdf`
-      pdf.save(fileName)
-
-      toast({ title: "Éxito", description: "Cotización generada y descargada exitosamente" })
     } catch (error) {
-      console.error("[v0] Error generando PDF:", error)
-      toast({
-        title: "Error",
-        description: "Error al generar el PDF. Revisa la consola para más detalles.",
-        variant: "destructive",
-      })
+      toast({ title: "Error", description: "Error de conexión", variant: "destructive" })
     }
-  }
-
-  const truncarMaterial = (nombre: string, maxLength = 25) => {
-    if (nombre.length > maxLength) {
-      return nombre.substring(0, maxLength) + "..."
-    }
-    return nombre
   }
 
   return (
@@ -453,39 +344,46 @@ export default function CotizarPage() {
               <label className="text-sm text-muted-foreground">Costo de Despacho</label>
               <Input
                 type="number"
+                min="0"
                 value={datosAdicionales.costoDespacho}
                 onChange={(e) =>
                   setDatosAdicionales({
                     ...datosAdicionales,
-                    costoDespacho: Number.parseFloat(e.target.value) || 0,
+                    costoDespacho: e.target.value === "" ? "" : Number.parseFloat(e.target.value),
                   })
                 }
+                placeholder="0"
               />
             </div>
             <div>
               <label className="text-sm text-muted-foreground">Costo de Instalación</label>
               <Input
                 type="number"
+                min="0"
                 value={datosAdicionales.costoInstalacion}
                 onChange={(e) =>
                   setDatosAdicionales({
                     ...datosAdicionales,
-                    costoInstalacion: Number.parseFloat(e.target.value) || 0,
+                    costoInstalacion: e.target.value === "" ? "" : Number.parseFloat(e.target.value),
                   })
                 }
+                placeholder="0"
               />
             </div>
             <div>
               <label className="text-sm text-muted-foreground">Ganancia Global (%)</label>
               <Input
                 type="number"
+                min="0"
+                max="100"
                 value={datosAdicionales.gananciaGlobal}
                 onChange={(e) =>
                   setDatosAdicionales({
                     ...datosAdicionales,
-                    gananciaGlobal: Number.parseFloat(e.target.value) || 0,
+                    gananciaGlobal: e.target.value === "" ? "" : Number.parseFloat(e.target.value),
                   })
                 }
+                placeholder="0"
               />
             </div>
           </CardContent>
@@ -634,9 +532,11 @@ export default function CotizarPage() {
                           <Input
                             type="number"
                             step="0.1"
+                            min="0"
+                            placeholder="0" // Added placeholder
                             value={ventana.ancho}
-                            onChange={(e) =>
-                              actualizarVentana(opcion.id, ventana.id, "ancho", Number.parseFloat(e.target.value) || 0)
+                            onChange={
+                              (e) => actualizarVentana(opcion.id, ventana.id, "ancho", e.target.value) // Store as string
                             }
                             className="w-full h-8 text-center"
                           />
@@ -645,9 +545,11 @@ export default function CotizarPage() {
                           <Input
                             type="number"
                             step="0.1"
+                            min="0"
+                            placeholder="0" // Added placeholder
                             value={ventana.alto}
-                            onChange={(e) =>
-                              actualizarVentana(opcion.id, ventana.id, "alto", Number.parseFloat(e.target.value) || 0)
+                            onChange={
+                              (e) => actualizarVentana(opcion.id, ventana.id, "alto", e.target.value) // Store as string
                             }
                             className="w-full h-8 text-center"
                           />
@@ -699,9 +601,12 @@ export default function CotizarPage() {
           <Plus className="h-4 w-4" />
           Agregar otra opción
         </Button>
-        <Button onClick={generarPDF} className="gap-2 flex-1 bg-orange-500 hover:bg-orange-600">
+        <Button onClick={generarPDF} className="gap-2 bg-teal-600 hover:bg-teal-700">
           <FileText className="h-4 w-4" />
-          Generar Cotización
+          Generar PDF
+        </Button>
+        <Button onClick={handleEnviarCotizacion} className="gap-2 bg-blue-600 hover:bg-blue-700">
+          Enviar por Email
         </Button>
       </div>
     </div>
