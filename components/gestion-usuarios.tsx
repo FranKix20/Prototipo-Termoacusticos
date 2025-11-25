@@ -5,12 +5,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { Trash2, Edit2, Check, X } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Usuario {
   id: number
   nombre: string
   correo: string
   contraseña: string
+  rol: "administrador" | "usuario"
   created_at: string
 }
 
@@ -21,6 +23,7 @@ export function GestionUsuarios() {
     nombre: "",
     correo: "",
     contraseña: "",
+    rol: "usuario" as "administrador" | "usuario",
   })
   const [editandoId, setEditandoId] = useState<number | null>(null)
   const [datosEdicion, setDatosEdicion] = useState<Partial<Usuario>>({})
@@ -87,7 +90,7 @@ export function GestionUsuarios() {
       }
 
       setMensaje("Usuario creado exitosamente")
-      setNuevoUsuario({ nombre: "", correo: "", contraseña: "" })
+      setNuevoUsuario({ nombre: "", correo: "", contraseña: "", rol: "usuario" })
       await fetchUsuarios()
     } catch (err) {
       console.error("[v0] Error creating usuario:", err)
@@ -126,6 +129,7 @@ export function GestionUsuarios() {
           nombre: datosEdicion.nombre,
           correo: datosEdicion.correo,
           contraseña: datosEdicion.contraseña,
+          rol: datosEdicion.rol,
         }),
       })
 
@@ -213,6 +217,25 @@ export function GestionUsuarios() {
             />
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">Nivel de Acceso</label>
+            <Select
+              value={nuevoUsuario.rol}
+              onValueChange={(value: "administrador" | "usuario") => setNuevoUsuario({ ...nuevoUsuario, rol: value })}
+            >
+              <SelectTrigger className="bg-background text-foreground border-input">
+                <SelectValue placeholder="Seleccione nivel de acceso" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="usuario">Usuario</SelectItem>
+                <SelectItem value="administrador">Administrador</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Usuario: Solo puede cotizar | Administrador: Acceso completo
+            </p>
+          </div>
+
           <Button onClick={handleAgregarUsuario} className="w-full bg-teal-600 hover:bg-teal-700 text-white">
             Crear Usuario
           </Button>
@@ -230,6 +253,7 @@ export function GestionUsuarios() {
                 <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Nombre</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Correo</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Contraseña</th>
+                <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Rol</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-foreground">Fecha Creación</th>
                 <th className="px-4 py-3 text-center text-sm font-semibold text-foreground">Acciones</th>
               </tr>
@@ -264,6 +288,22 @@ export function GestionUsuarios() {
                           className="h-8 text-sm"
                         />
                       </td>
+                      <td className="px-4 py-3">
+                        <Select
+                          value={datosEdicion.rol || "usuario"}
+                          onValueChange={(value: "administrador" | "usuario") =>
+                            setDatosEdicion({ ...datosEdicion, rol: value })
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="usuario">Usuario</SelectItem>
+                            <SelectItem value="administrador">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {new Date(usuario.created_at).toLocaleDateString()}
                       </td>
@@ -296,6 +336,17 @@ export function GestionUsuarios() {
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {"•".repeat(usuario.contraseña.length)}
                       </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium ${
+                            usuario.rol === "administrador"
+                              ? "bg-purple-100 text-purple-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {usuario.rol === "administrador" ? "Administrador" : "Usuario"}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {new Date(usuario.created_at).toLocaleDateString()}
                       </td>
@@ -313,7 +364,7 @@ export function GestionUsuarios() {
                             onClick={() => handleEliminarUsuario(usuario.id)}
                             size="sm"
                             variant="outline"
-                            className="h-8 w-0 p-0"
+                            className="h-8 w-8 p-0"
                           >
                             <Trash2 className="h-4 w-4 text-red-600" />
                           </Button>

@@ -3,22 +3,53 @@
 import { useRouter } from "next/navigation"
 import { Home, FileText, History, Settings, LogOut, Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react"
 
 export function MainNav({ currentPage }: { currentPage: string }) {
   const router = useRouter()
+  const [userRole, setUserRole] = useState<string>("")
+
+  useEffect(() => {
+    const rol = localStorage.getItem("admin_rol") || "usuario"
+    setUserRole(rol)
+  }, [])
 
   const handleLogout = () => {
     localStorage.removeItem("admin_authenticated")
+    localStorage.removeItem("admin_rol")
+    localStorage.removeItem("admin_usuario_id")
+    localStorage.removeItem("admin_email")
+    localStorage.removeItem("admin_nombre")
     router.push("/login")
   }
 
-  const navItems = [
-    { id: "inicio", label: "Inicio", icon: Home, path: "/admin" },
-    { id: "cotizar", label: "Cotizar", icon: FileText, path: "/admin/cotizar" },
-    { id: "historial", label: "Historial", icon: History, path: "/admin/historial" },
-    { id: "modificar", label: "Modificar", icon: Edit, path: "/admin/modificar" },
-    { id: "configuracion", label: "Configuración", icon: Settings, path: "/admin/configuracion" },
+  const allNavItems = [
+    { id: "inicio", label: "Inicio", icon: Home, path: "/admin", allowedRoles: ["administrador", "usuario"] },
+    {
+      id: "cotizar",
+      label: "Cotizar",
+      icon: FileText,
+      path: "/admin/cotizar",
+      allowedRoles: ["administrador", "usuario"],
+    },
+    {
+      id: "historial",
+      label: "Historial",
+      icon: History,
+      path: "/admin/historial",
+      allowedRoles: ["administrador", "usuario"],
+    },
+    { id: "modificar", label: "Modificar", icon: Edit, path: "/admin/modificar", allowedRoles: ["administrador"] },
+    {
+      id: "configuracion",
+      label: "Configuración",
+      icon: Settings,
+      path: "/admin/configuracion",
+      allowedRoles: ["administrador"],
+    },
   ]
+
+  const navItems = allNavItems.filter((item) => item.allowedRoles.includes(userRole))
 
   return (
     <nav className="bg-teal-600 text-white px-6 py-4 flex items-center justify-between">
