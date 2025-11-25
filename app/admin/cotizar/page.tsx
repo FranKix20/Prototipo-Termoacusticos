@@ -196,7 +196,7 @@ export default function CotizarPage() {
     setOpciones(opciones.filter((o) => o.id !== opcionId))
   }
 
-  const generarPDF = () => {
+  const generarPDF = async () => {
     const doc = new jsPDF()
 
     doc.setFontSize(18)
@@ -240,6 +240,67 @@ export default function CotizarPage() {
 
       yPosition = (doc as any).lastAutoTable.finalY + 10
     })
+
+    try {
+      const pdfBlob = doc.output("blob")
+      const fileName = `cotizacion-${clientData.nombre.replace(/\s+/g, "-")}-${Date.now()}.pdf`
+
+      const formData = new FormData()
+      formData.append("file", pdfBlob, fileName)
+
+      const uploadResponse = await fetch("/api/save-pdf", {
+        method: "POST",
+        body: formData,
+      })
+
+      const uploadResult = await uploadResponse.json()
+
+      if (uploadResult.success) {
+        const precioTotal = opciones.reduce((total, opcion) => {
+          return (
+            total +
+            opcion.ventanas.reduce((sum, v) => {
+              return sum + calcularValorTotal(v)
+            }, 0)
+          )
+        }, 0)
+
+        const saveResponse = await fetch("/api/cotizaciones", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            clienteNombre: clientData.nombre,
+            clienteRut: clientData.rut,
+            clienteCorreo: clientData.email,
+            clienteTelefono: clientData.telefono,
+            clienteDireccion: "",
+            precioTotal: precioTotal,
+            pdfUrl: uploadResult.url,
+            items: opciones.flatMap((opcion) =>
+              opcion.ventanas.map((v) => ({
+                tipoId: v.tipoId,
+                materialId: v.materialId,
+                cristalId: v.cristalId,
+                colorId: v.colorId,
+                cantidad: v.cantidad,
+                ancho: v.ancho,
+                alto: v.alto,
+              })),
+            ),
+          }),
+        })
+
+        const saveResult = await saveResponse.json()
+
+        if (saveResult.success) {
+          alert("Cotización guardada en el historial correctamente")
+        }
+      }
+    } catch (error) {
+      console.error("Error saving to history:", error)
+    }
 
     doc.save("cotizacion.pdf")
   }
