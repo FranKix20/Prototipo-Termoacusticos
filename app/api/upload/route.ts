@@ -7,6 +7,18 @@ export async function POST(request: Request) {
   try {
     console.log("[v0] Upload request received")
 
+    const token = process.env.BLOB_READ_WRITE_TOKEN
+
+    if (!token) {
+      console.error("[v0] BLOB_READ_WRITE_TOKEN not found in environment variables")
+      return Response.json(
+        { error: "Blob storage not configured. Please add BLOB_READ_WRITE_TOKEN environment variable." },
+        { status: 500 },
+      )
+    }
+
+    console.log("[v0] Token found, length:", token.length)
+
     const formData = await request.formData()
     const file = formData.get("file") as File
 
@@ -19,6 +31,7 @@ export async function POST(request: Request) {
 
     const blob = await put(file.name, file, {
       access: "public",
+      token: token,
     })
 
     console.log("[v0] Upload successful, URL:", blob.url)
