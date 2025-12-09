@@ -8,6 +8,10 @@ import Link from "next/link"
 import { ArrowRight, CheckCircle2 } from "lucide-react"
 
 export default function ProductosPage() {
+  const tiposVentanas = TIPOS_VENTANAS || []
+  const materialesMarco = MATERIALES_MARCO || []
+  const tiposVidrio = TIPOS_VIDRIO || []
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -26,7 +30,7 @@ export default function ProductosPage() {
         <section className="mb-16">
           <h2 className="mb-6 font-sans text-3xl font-bold text-foreground">Tipos de Ventanas</h2>
           <div className="grid gap-6 md:grid-cols-2">
-            {TIPOS_VENTANAS.map((producto) => (
+            {tiposVentanas.map((producto) => (
               <Card key={producto.id} className="border-border bg-card transition-shadow hover:shadow-lg">
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -58,7 +62,7 @@ export default function ProductosPage() {
         <section className="mb-16">
           <h2 className="mb-6 font-sans text-3xl font-bold text-foreground">Materiales de Marco</h2>
           <div className="grid gap-6 md:grid-cols-3">
-            {MATERIALES_MARCO.map((material) => (
+            {materialesMarco.map((material) => (
               <Card key={material.id} className="border-border bg-card">
                 <CardHeader>
                   <CardTitle className="text-card-foreground">{material.nombre}</CardTitle>
@@ -83,7 +87,7 @@ export default function ProductosPage() {
         <section className="mb-16">
           <h2 className="mb-6 font-sans text-3xl font-bold text-foreground">Tipos de Vidrio</h2>
           <div className="grid gap-6 md:grid-cols-2">
-            {TIPOS_VIDRIO.map((vidrio) => (
+            {tiposVidrio.map((vidrio) => (
               <Card key={vidrio.id} className="border-border bg-card">
                 <CardHeader>
                   <div className="flex items-start justify-between">

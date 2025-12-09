@@ -419,10 +419,8 @@ export function encontrarProductoCercano(
 
   if (productos.length === 0) return null
 
-  // Si hay exactamente una coincidencia, devolverla
   if (productos.length === 1) return productos[0]
 
-  // Encontrar el producto más cercano por medidas
   return productos.reduce((closest, current) => {
     const diffActual = Math.abs(closest.anchoM - anchoM) + Math.abs(closest.altoM - altoM)
     const diffCurrent = Math.abs(current.anchoM - anchoM) + Math.abs(current.altoM - altoM)
@@ -443,3 +441,124 @@ export function interpolarCosto(
     producto1.costoColoradoBase + (producto2.costoColoradoBase - producto1.costoColoradoBase) * porcentaje,
   )
 }
+
+export interface TipoVentana {
+  id: string
+  nombre: string
+  descripcion: string
+  precioBaseM2: number
+  caracteristicas: string[]
+}
+
+export interface MaterialMarco {
+  id: string
+  nombre: string
+  descripcion: string
+  caracteristicas: string[]
+}
+
+export interface TipoVidrio {
+  id: string
+  nombre: string
+  descripcion: string
+  grosor: string
+  caracteristicas: string[]
+}
+
+export const TIPOS_VENTANAS: TipoVentana[] = [
+  {
+    id: "corredera",
+    nombre: "Ventana Corredera",
+    descripcion: "Apertura horizontal con deslizamiento suave",
+    precioBaseM2: 45000,
+    caracteristicas: [
+      "Sistema de deslizamiento suave",
+      "Ideal para espacios reducidos",
+      "Fácil operación",
+      "Seguridad garantizada",
+    ],
+  },
+  {
+    id: "proyectante",
+    nombre: "Ventana Proyectante",
+    descripcion: "Apertura con proyección hacia afuera",
+    precioBaseM2: 52000,
+    caracteristicas: ["Excelente ventilación", "Protección contra lluvia", "Vista panorámica", "Diseño moderno"],
+  },
+  {
+    id: "fija",
+    nombre: "Ventana Fija",
+    descripcion: "Marco fijo sin apertura",
+    precioBaseM2: 35000,
+    caracteristicas: ["Máxima transparencia", "Excelente aislamiento", "Instalación simple", "Menor costo"],
+  },
+  {
+    id: "oscilobatiente",
+    nombre: "Ventana Oscilobatiente",
+    descripcion: "Apertura en dos posiciones",
+    precioBaseM2: 58000,
+    caracteristicas: ["Versatilidad de apertura", "Operación segura", "Fácil limpieza", "Máxima comodidad"],
+  },
+]
+
+export const MATERIALES_MARCO: MaterialMarco[] = [
+  {
+    id: "pvc",
+    nombre: "PVC",
+    descripcion: "Polivinilo de cloruro - Excelente relación precio/rendimiento",
+    caracteristicas: [
+      "Aislamiento térmico superior",
+      "Bajo mantenimiento",
+      "Resistente a la corrosión",
+      "Económico y duradero",
+    ],
+  },
+  {
+    id: "aluminio",
+    nombre: "Aluminio",
+    descripcion: "Marco de aluminio anodizado",
+    caracteristicas: ["Máxima durabilidad", "Diseño moderno", "Resistente a la intemperie", "Acabado profesional"],
+  },
+  {
+    id: "pvc-premium",
+    nombre: "PVC Premium con Refuerzo",
+    descripcion: "PVC reforzado con acero para máxima resistencia",
+    caracteristicas: [
+      "Máxima estabilidad",
+      "Excelente aislamiento",
+      "Refuerzo interior de acero",
+      "Garantía extendida",
+    ],
+  },
+]
+
+export const TIPOS_VIDRIO: TipoVidrio[] = [
+  {
+    id: "estandar",
+    nombre: "Termopanel Estándar",
+    descripcion: "Vidrio doble de uso general",
+    grosor: "4mm",
+    caracteristicas: ["Vidrio doble estándar", "Buen aislamiento térmico", "Económico", "Eficiente"],
+  },
+  {
+    id: "reforzado",
+    nombre: "Termopanel Reforzado",
+    descripcion: "Vidrio doble con mayor espesor",
+    grosor: "6mm",
+    caracteristicas: ["Mayor resistencia", "Mejor aislamiento", "Seguridad aumentada", "Durabilidad superior"],
+  },
+  {
+    id: "blindex",
+    nombre: "Termopanel Blindex",
+    descripcion: "Vidrio laminado de seguridad",
+    grosor: "Laminado",
+    caracteristicas: ["Vidrio de seguridad", "Protección ante impactos", "Aislamiento acústico", "Máxima protección"],
+  },
+  {
+    id: "low-e",
+    nombre: "Termopanel Low-E",
+    descripcion: "Vidrio bajo emisivo para máxima eficiencia",
+    grosor: "5mm",
+    caracteristicas: ["Eficiencia energética máxima", "Bajo emisivo", "Refleja calor infrarrojo", "Ahorro de energía"],
+  },
+]

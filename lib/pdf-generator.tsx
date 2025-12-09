@@ -203,7 +203,7 @@ export function generarPDFCotizacion(data: CotizacionData, resultado: ResultadoC
               : ""
           }
           ${
-            data.instalacion
+            resultado.instalacion > 0
               ? `
           <div class="price-row">
             <span>Instalación profesional:</span>
