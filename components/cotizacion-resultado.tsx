@@ -101,7 +101,7 @@ export function CotizacionResultado({ data, resultado, onNuevaCotizacion }: Coti
                   <span>-{formatCurrency(resultado.descuento)}</span>
                 </div>
               )}
-              {data.instalacion && (
+              {resultado.instalacion > 0 && (
                 <div className="flex justify-between text-muted-foreground">
                   <span>Instalación profesional:</span>
                   <span>{formatCurrency(resultado.instalacion)}</span>
