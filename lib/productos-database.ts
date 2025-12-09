@@ -1,210 +1,445 @@
-// Base de datos de productos con precios reales actualizados (2025)
-// Basado en investigación de mercado chileno
+// This database contains the real product matrix with all pricing components
 
-export interface Producto {
+export interface ProductoMatriz {
   id: string
-  nombre: string
-  tipo: string
-  descripcion: string
-  precioBaseM2: number
-  caracteristicas: string[]
-  imagen?: string
+  material: string // PVC, ALUMINIO_A, ALUMINIO_B
+  tipo: string // CORREADERA_GRANDE, CORREADERA_CHICA, FIJO, PROYECTANTE, PUERTA, ELEMENTO_ESPECIAL
+  anchoM: number // Ancho en metros
+  altoM: number // Alto en metros
+  costoColoradoBase: number // Costo base colorado
+  datoIntermedio: number // Interpolación de valor
+  termosMts: number // Metros cuadrados (calculado: ancho × alto)
+  m2Termos: number // Precio por m2 de termos
+  perfil: number // Costo de perfil
+  herraje: number // Costo de herraje
+  margenPorcentaje: number // % de margen
 }
 
-export interface MaterialMarco {
-  id: string
-  nombre: string
-  descripcion: string
-  multiplicador: number
-  caracteristicas: string[]
-}
+// Matriz de productos basada en la imagen proporcionada
+export const MATRIZ_PRODUCTOS: ProductoMatriz[] = [
+  // CORREADERA GRANDE - BLANCO
+  {
+    id: "correadera-grande-3500-2200",
+    material: "PVC",
+    tipo: "CORREADERA_GRANDE",
+    anchoM: 3.5,
+    altoM: 2.2,
+    costoColoradoBase: 350000,
+    datoIntermedio: 350000,
+    termosMts: 7.7,
+    m2Termos: 46.784,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "correadera-grande-3000-2200",
+    material: "PVC",
+    tipo: "CORREADERA_GRANDE",
+    anchoM: 3.0,
+    altoM: 2.2,
+    costoColoradoBase: 320000,
+    datoIntermedio: 320000,
+    termosMts: 6.6,
+    m2Termos: 46.784,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "correadera-grande-2320-2200",
+    material: "PVC",
+    tipo: "CORREADERA_GRANDE",
+    anchoM: 2.32,
+    altoM: 2.2,
+    costoColoradoBase: 252644,
+    datoIntermedio: 252644,
+    termosMts: 5.104,
+    m2Termos: 46.784,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "correadera-grande-2200-2200",
+    material: "PVC",
+    tipo: "CORREADERA_GRANDE",
+    anchoM: 2.2,
+    altoM: 2.2,
+    costoColoradoBase: 240000,
+    datoIntermedio: 240000,
+    termosMts: 4.84,
+    m2Termos: 46.784,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "correadera-grande-1750-2000",
+    material: "PVC",
+    tipo: "CORREADERA_GRANDE",
+    anchoM: 1.75,
+    altoM: 2.0,
+    costoColoradoBase: 200000,
+    datoIntermedio: 200000,
+    termosMts: 3.5,
+    m2Termos: 54.7,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "correadera-grande-1500-2000",
+    material: "PVC",
+    tipo: "CORREADERA_GRANDE",
+    anchoM: 1.5,
+    altoM: 2.0,
+    costoColoradoBase: 150000,
+    datoIntermedio: 150000,
+    termosMts: 3.0,
+    m2Termos: 46.784,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
 
-export interface TipoVidrio {
-  id: string
-  nombre: string
-  descripcion: string
-  multiplicador: number
-  grosor: string
-  caracteristicas: string[]
-}
+  // CORREADERA CHICA - BLANCO
+  {
+    id: "correadera-chica-3000-1600",
+    material: "PVC",
+    tipo: "CORREADERA_CHICA",
+    anchoM: 3.0,
+    altoM: 1.6,
+    costoColoradoBase: 139974,
+    datoIntermedio: 139974,
+    termosMts: 4.8,
+    m2Termos: 35.25,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "correadera-chica-2500-1500",
+    material: "PVC",
+    tipo: "CORREADERA_CHICA",
+    anchoM: 2.5,
+    altoM: 1.5,
+    costoColoradoBase: 139974,
+    datoIntermedio: 139974,
+    termosMts: 3.75,
+    m2Termos: 35.25,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "correadera-chica-1600-1500",
+    material: "PVC",
+    tipo: "CORREADERA_CHICA",
+    anchoM: 1.6,
+    altoM: 1.5,
+    costoColoradoBase: 99546,
+    datoIntermedio: 99546,
+    termosMts: 2.4,
+    m2Termos: 35.807,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "correadera-chica-1400-1425",
+    material: "PVC",
+    tipo: "CORREADERA_CHICA",
+    anchoM: 1.4,
+    altoM: 1.425,
+    costoColoradoBase: 92000,
+    datoIntermedio: 92000,
+    termosMts: 1.995,
+    m2Termos: 35.807,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "correadera-chica-1200-1200",
+    material: "PVC",
+    tipo: "CORREADERA_CHICA",
+    anchoM: 1.2,
+    altoM: 1.2,
+    costoColoradoBase: 72000,
+    datoIntermedio: 72000,
+    termosMts: 1.44,
+    m2Termos: 35.807,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "correadera-chica-1000-1000",
+    material: "PVC",
+    tipo: "CORREADERA_CHICA",
+    anchoM: 1.0,
+    altoM: 1.0,
+    costoColoradoBase: 60000,
+    datoIntermedio: 60000,
+    termosMts: 1.0,
+    m2Termos: 35.807,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
 
-// Catálogo de tipos de ventanas
-export const TIPOS_VENTANAS: Producto[] = [
+  // FIJO - BLANCO
   {
-    id: "corredera",
-    nombre: "Ventana Corredera",
-    tipo: "corredera",
-    descripcion: "Sistema de apertura horizontal deslizante, ideal para espacios reducidos",
-    precioBaseM2: 85000,
-    caracteristicas: [
-      "Apertura horizontal deslizante",
-      "Ahorro de espacio",
-      "Fácil mantenimiento",
-      "Ideal para balcones y terrazas",
-    ],
+    id: "fijo-1600-2200",
+    material: "PVC",
+    tipo: "FIJO",
+    anchoM: 1.6,
+    altoM: 2.2,
+    costoColoradoBase: 33351,
+    datoIntermedio: 33351,
+    termosMts: 3.52,
+    m2Termos: 35.807,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
   },
   {
-    id: "proyectante",
-    nombre: "Ventana Proyectante",
-    tipo: "proyectante",
-    descripcion: "Apertura hacia afuera, excelente ventilación y protección contra lluvia",
-    precioBaseM2: 92000,
-    caracteristicas: [
-      "Apertura hacia el exterior",
-      "Ventilación superior",
-      "Protección contra lluvia",
-      "Ideal para baños y cocinas",
-    ],
+    id: "fijo-1500-1500",
+    material: "PVC",
+    tipo: "FIJO",
+    anchoM: 1.5,
+    altoM: 1.5,
+    costoColoradoBase: 33351,
+    datoIntermedio: 33351,
+    termosMts: 2.25,
+    m2Termos: 35.807,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
   },
   {
-    id: "fija",
-    nombre: "Ventana Fija",
-    tipo: "fija",
-    descripcion: "Sin apertura, máxima eficiencia térmica y luminosidad",
-    precioBaseM2: 75000,
-    caracteristicas: [
-      "Sin mecanismo de apertura",
-      "Mayor eficiencia térmica",
-      "Máxima entrada de luz",
-      "Ideal para grandes superficies",
-    ],
+    id: "fijo-1200-1500",
+    material: "PVC",
+    tipo: "FIJO",
+    anchoM: 1.2,
+    altoM: 1.5,
+    costoColoradoBase: 33351,
+    datoIntermedio: 33351,
+    termosMts: 1.8,
+    m2Termos: 35.807,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
   },
   {
-    id: "oscilobatiente",
-    nombre: "Ventana Oscilobatiente",
-    tipo: "oscilobatiente",
-    descripcion: "Doble sistema de apertura: abatible y basculante",
-    precioBaseM2: 105000,
-    caracteristicas: ["Doble sistema de apertura", "Máxima versatilidad", "Ventilación controlada", "Alta seguridad"],
+    id: "fijo-1200-1300",
+    material: "PVC",
+    tipo: "FIJO",
+    anchoM: 1.2,
+    altoM: 1.3,
+    costoColoradoBase: 33351,
+    datoIntermedio: 33351,
+    termosMts: 1.56,
+    m2Termos: 35.807,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "fijo-1000-1000",
+    material: "PVC",
+    tipo: "FIJO",
+    anchoM: 1.0,
+    altoM: 1.0,
+    costoColoradoBase: 33351,
+    datoIntermedio: 33351,
+    termosMts: 1.0,
+    m2Termos: 35.807,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "fijo-800-800",
+    material: "PVC",
+    tipo: "FIJO",
+    anchoM: 0.8,
+    altoM: 0.8,
+    costoColoradoBase: 33351,
+    datoIntermedio: 33351,
+    termosMts: 0.64,
+    m2Termos: 35.807,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+
+  // PROYECTANTE - BLANCO
+  {
+    id: "proyectante-1100-1100",
+    material: "PVC",
+    tipo: "PROYECTANTE",
+    anchoM: 1.1,
+    altoM: 1.1,
+    costoColoradoBase: 66066,
+    datoIntermedio: 66066,
+    termosMts: 1.21,
+    m2Termos: 22.516,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "proyectante-1100-950",
+    material: "PVC",
+    tipo: "PROYECTANTE",
+    anchoM: 1.1,
+    altoM: 0.95,
+    costoColoradoBase: 66066,
+    datoIntermedio: 66066,
+    termosMts: 1.045,
+    m2Termos: 16.614,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "proyectante-700-950",
+    material: "PVC",
+    tipo: "PROYECTANTE",
+    anchoM: 0.7,
+    altoM: 0.95,
+    costoColoradoBase: 66066,
+    datoIntermedio: 66066,
+    termosMts: 0.665,
+    m2Termos: 16.614,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "proyectante-600-600",
+    material: "PVC",
+    tipo: "PROYECTANTE",
+    anchoM: 0.6,
+    altoM: 0.6,
+    costoColoradoBase: 66066,
+    datoIntermedio: 66066,
+    termosMts: 0.36,
+    m2Termos: 22.516,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "proyectante-400-600",
+    material: "PVC",
+    tipo: "PROYECTANTE",
+    anchoM: 0.4,
+    altoM: 0.6,
+    costoColoradoBase: 66066,
+    datoIntermedio: 66066,
+    termosMts: 0.24,
+    m2Termos: 22.516,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "proyectante-300-300",
+    material: "PVC",
+    tipo: "PROYECTANTE",
+    anchoM: 0.3,
+    altoM: 0.3,
+    costoColoradoBase: 66066,
+    datoIntermedio: 66066,
+    termosMts: 0.09,
+    m2Termos: 22.516,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+
+  // PUERTA - BLANCO
+  {
+    id: "puerta-900-2200",
+    material: "PVC",
+    tipo: "PUERTA",
+    anchoM: 0.9,
+    altoM: 2.2,
+    costoColoradoBase: 138135,
+    datoIntermedio: 138135,
+    termosMts: 1.98,
+    m2Termos: 105.728,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+  {
+    id: "puerta-doble-1800-2300",
+    material: "PVC",
+    tipo: "PUERTA",
+    anchoM: 1.8,
+    altoM: 2.3,
+    costoColoradoBase: 138135,
+    datoIntermedio: 138135,
+    termosMts: 4.14,
+    m2Termos: 105.728,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
+  },
+
+  // ELEMENTO ESPECIAL - BLANCO
+  {
+    id: "elemento-especial",
+    material: "PVC",
+    tipo: "ELEMENTO_ESPECIAL",
+    anchoM: 0,
+    altoM: 0,
+    costoColoradoBase: 138135,
+    datoIntermedio: 138135,
+    termosMts: 0,
+    m2Termos: 105.728,
+    perfil: 0,
+    herraje: 0,
+    margenPorcentaje: 83,
   },
 ]
 
-// Catálogo de materiales de marco
-export const MATERIALES_MARCO: MaterialMarco[] = [
-  {
-    id: "pvc",
-    nombre: "PVC Estándar",
-    descripcion: "Material aislante de alta calidad, bajo mantenimiento",
-    multiplicador: 1.0,
-    caracteristicas: [
-      "Excelente aislamiento térmico",
-      "Resistente a la humedad",
-      "Bajo mantenimiento",
-      "Durabilidad de 30+ años",
-    ],
-  },
-  {
-    id: "aluminio",
-    nombre: "Aluminio",
-    descripcion: "Ligero y resistente, ideal para grandes dimensiones",
-    multiplicador: 0.85,
-    caracteristicas: [
-      "Ligero y resistente",
-      "Ideal para grandes ventanas",
-      "Acabado moderno",
-      "Resistente a la corrosión",
-    ],
-  },
-  {
-    id: "pvc-premium",
-    nombre: "PVC Premium con Refuerzo",
-    descripcion: "PVC reforzado con acero galvanizado, máxima resistencia",
-    multiplicador: 1.25,
-    caracteristicas: [
-      "Refuerzo de acero galvanizado",
-      "Máxima resistencia estructural",
-      "Ideal para grandes dimensiones",
-      "Certificación europea",
-    ],
-  },
-]
+// Función para encontrar el producto más cercano por medidas
+export function encontrarProductoCercano(
+  material: string,
+  tipo: string,
+  anchoM: number,
+  altoM: number,
+): ProductoMatriz | null {
+  const productos = MATRIZ_PRODUCTOS.filter((p) => p.material === material && p.tipo === tipo)
 
-// Catálogo de tipos de vidrio
-export const TIPOS_VIDRIO: TipoVidrio[] = [
-  {
-    id: "estandar",
-    nombre: "Termopanel Estándar",
-    descripcion: "Doble vidrio con cámara de aire, aislamiento térmico básico",
-    multiplicador: 1.0,
-    grosor: "4mm + 12mm cámara + 4mm",
-    caracteristicas: ["Doble vidrio hermético", "Cámara de aire de 12mm", "Reducción de ruido 30dB", "Filtro UV 99%"],
-  },
-  {
-    id: "reforzado",
-    nombre: "Termopanel Reforzado",
-    descripcion: "Vidrio de 6mm, mayor resistencia y aislamiento",
-    multiplicador: 1.15,
-    grosor: "6mm + 16mm cámara + 6mm",
-    caracteristicas: [
-      "Vidrio reforzado 6mm",
-      "Cámara de aire de 16mm",
-      "Reducción de ruido 35dB",
-      "Mayor resistencia a impactos",
-    ],
-  },
-  {
-    id: "blindex",
-    nombre: "Termopanel Blindex",
-    descripcion: "Vidrio laminado de seguridad, máxima protección",
-    multiplicador: 1.35,
-    grosor: "3mm+3mm laminado + 12mm cámara + 4mm",
-    caracteristicas: [
-      "Vidrio laminado de seguridad",
-      "Protección contra roturas",
-      "Filtro UV 99.9%",
-      "Reducción de ruido 38dB",
-    ],
-  },
-  {
-    id: "low-e",
-    nombre: "Termopanel Low-E",
-    descripcion: "Vidrio bajo emisivo, máxima eficiencia energética",
-    multiplicador: 1.45,
-    grosor: "4mm Low-E + 16mm argón + 4mm",
-    caracteristicas: [
-      "Capa de baja emisividad",
-      "Cámara con gas argón",
-      "Máxima eficiencia energética",
-      "Reducción de ruido 40dB",
-    ],
-  },
-]
+  if (productos.length === 0) return null
 
-// Precios adicionales
-export const PRECIOS_ADICIONALES = {
-  instalacionPorM2: 25000,
-  transporteBase: 15000,
-  transportePorKm: 500,
-  urgencia24h: 50000,
-  urgencia48h: 30000,
-  garantiaExtendida: 45000,
+  // Si hay exactamente una coincidencia, devolverla
+  if (productos.length === 1) return productos[0]
+
+  // Encontrar el producto más cercano por medidas
+  return productos.reduce((closest, current) => {
+    const diffActual = Math.abs(closest.anchoM - anchoM) + Math.abs(closest.altoM - altoM)
+    const diffCurrent = Math.abs(current.anchoM - anchoM) + Math.abs(current.altoM - altoM)
+    return diffCurrent < diffActual ? current : closest
+  })
 }
 
-// Descuentos por volumen
-export const DESCUENTOS_VOLUMEN = [
-  { cantidadMinima: 1, descuento: 0 },
-  { cantidadMinima: 5, descuento: 0.05 }, // 5% descuento
-  { cantidadMinima: 10, descuento: 0.1 }, // 10% descuento
-  { cantidadMinima: 20, descuento: 0.15 }, // 15% descuento
-]
-
-// Función para obtener producto por ID
-export function getProductoById(id: string): Producto | undefined {
-  return TIPOS_VENTANAS.find((p) => p.id === id)
-}
-
-// Función para obtener material por ID
-export function getMaterialById(id: string): MaterialMarco | undefined {
-  return MATERIALES_MARCO.find((m) => m.id === id)
-}
-
-// Función para obtener tipo de vidrio por ID
-export function getTipoVidrioById(id: string): TipoVidrio | undefined {
-  return TIPOS_VIDRIO.find((v) => v.id === id)
-}
-
-// Función para calcular descuento por volumen
-export function calcularDescuentoVolumen(cantidad: number): number {
-  const descuento = [...DESCUENTOS_VOLUMEN].reverse().find((d) => cantidad >= d.cantidadMinima)
-  return descuento?.descuento || 0
+// Función para interpolar linealmente el costo
+export function interpolarCosto(
+  producto1: ProductoMatriz,
+  producto2: ProductoMatriz,
+  medidaTarget: number,
+  medidaRef1: number,
+  medidaRef2: number,
+): number {
+  const porcentaje = (medidaTarget - medidaRef1) / (medidaRef2 - medidaRef1)
+  return Math.round(
+    producto1.costoColoradoBase + (producto2.costoColoradoBase - producto1.costoColoradoBase) * porcentaje,
+  )
 }
